@@ -1,7 +1,7 @@
 # Kubernetes Edge Cloud with Reinforcement Learning Autoscaler
 
 Progetto per l’insegnamento **Virtual Networks and Cloud Computing** (a.a. **2024/25**)  
-Autore: **<metti-il-tuo-nome>**
+Autore: **Daniele Nanni Cirulli**
 
 Questo progetto implementa un mini **Edge Cloud** basato su **Kubernetes** in cui il numero di repliche di un microservizio viene gestito da un autoscaler intelligente basato su **Reinforcement Learning (Q-learning)**.
 
