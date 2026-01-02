@@ -31,22 +31,21 @@ Il repository include:
 ```mermaid
 flowchart LR
     %% Client / traffico
-    LG[Load Generator<br/>(Python + requests)] -->|HTTP traffic| SVC[Service NodePort<br/>(edge-app-service:30080)]
+    LG["Load Generator (Python + requests)"] -->|"HTTP traffic"| SVC["Service NodePort (edge-app-service:30080)"]
 
     %% Cluster Kubernetes
-    subgraph K8s[Kubernetes (minikube)]
-        SVC --> POD[Edge App Pod<br/>(Flask + Docker)]
-        DEP[Deployment edge-app] -. controlla repliche .-> POD
+    subgraph K8s["Kubernetes (minikube)"]
+        SVC --> POD["Edge App Pod (Flask + Docker)"]
+        DEP["Deployment edge-app"] -. "controlla repliche" .-> POD
     end
 
     %% RL Autoscaler
-    POD -->|misura latenza| RL[RL Autoscaler<br/>(Q-learning)]
-    RL -->|kubectl scale| DEP
+    POD -->|"misura latenza"| RL["RL Autoscaler (Q-learning)"]
+    RL -->|"kubectl scale"| DEP
 
     %% Logging + Dashboard
-    RL -->|scrive log| LOG[results/rl_log.csv]
-    LOG --> DASH[Dashboard<br/>(Streamlit + Plotly)]
-
+    RL -->|"scrive log"| LOG["results/rl_log.csv"]
+    LOG --> DASH["Dashboard (Streamlit + Plotly)"]
 ```
 ---
 
