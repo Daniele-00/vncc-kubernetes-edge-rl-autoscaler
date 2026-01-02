@@ -28,8 +28,6 @@ Il repository include:
 
 ### Architettura logica (high level)
 
-### Architettura logica (high level)
-
 ```mermaid
 flowchart LR
     %% Client / traffico
