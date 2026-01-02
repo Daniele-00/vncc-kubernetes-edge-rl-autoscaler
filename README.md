@@ -28,45 +28,28 @@ Il repository include:
 
 ### Architettura logica (high level)
 
-```text
-                +----------------------------------------+
-                |              Load Generator             |
-                |  (Python requests: traffico variabile)  |
-                +-------------------------+--------------+
-                                          |  HTTP
-                                          v
-                               +------------------------+
-                               |   Kubernetes (minikube)|
-                               | - Deployment: edge-app |
-           NodePort:30080  +-->| - Service: NodePort    |
-                           |   | - Pod(s): Docker       |
-                           |   +------------------------+
-                           |              ^
-                           |              | HTTP
-                           |              |
-                           |   +-----------------------+
-                           |   |     Edge App (Flask)  |
-                           |   |   CPU-bound workload  |
-                           |   +-----------------------+
-                           |
-                           |  Log CSV (lat,replicas,reward)
-                           v
-                 +--------------------------+
-                 |  RL Autoscaler (Q-Learn) |
-                 | - misura latenza         |
-                 | - decide scaling         |
-                 +--------------------------+
-                             |
-                             |  kubectl scale
-                             v
-                         Kubernetes
+### Architettura logica (high level)
 
-                 +--------------------------+
-                 | Dashboard (Streamlit)    |
-                 | + Plotly (grafici live)  |
-                 +--------------------------+
+```mermaid
+flowchart LR
+    %% Client / traffico
+    LG[Load Generator<br/>(Python + requests)] -->|HTTP traffic| SVC[Service NodePort<br/>(edge-app-service:30080)]
+
+    %% Cluster Kubernetes
+    subgraph K8s[Kubernetes (minikube)]
+        SVC --> POD[Edge App Pod<br/>(Flask + Docker)]
+        DEP[Deployment edge-app] -. controlla repliche .-> POD
+    end
+
+    %% RL Autoscaler
+    POD -->|misura latenza| RL[RL Autoscaler<br/>(Q-learning)]
+    RL -->|kubectl scale| DEP
+
+    %% Logging + Dashboard
+    RL -->|scrive log| LOG[results/rl_log.csv]
+    LOG --> DASH[Dashboard<br/>(Streamlit + Plotly)]
+
 ```
-
 ---
 
 ## 📁 Struttura del repository
