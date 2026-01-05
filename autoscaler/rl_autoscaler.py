@@ -5,12 +5,15 @@ import statistics
 import requests
 import csv
 from datetime import datetime
+import os
+
 
 MIN_PODS = 1
 MAX_PODS = 4
 ACTIONS = [0, 1, 2]  # 0=giù, 1=stop, 2=su
 
-MINIKUBE_IP = "192.168.49.2"  # sostituisci
+# Deinfizione dell'URL del servizio
+MINIKUBE_IP = os.getenv("MINIKUBE_IP", "192.168.49.2") # Per test sostituire con IP minikube corretto
 URL = f"http://{MINIKUBE_IP}:30080/"
 
 def get_replicas():
@@ -59,6 +62,25 @@ def reward_function(lat, replicas):
     r -= (replicas - 1) * 1.0
     return r
 
+def wait_for_deployment_ready():
+    """
+    Blocca l'esecuzione finché tutti i pod del deployment non sono
+    nello stato 'Ready'.
+    """
+    print("Attendo stabilizzazione dei Pod...")
+    try:
+        # kubectl rollout status esce solo quando il deployment è completato
+        subprocess.run(
+            ["kubectl", "rollout", "status", "deployment/edge-app", "--timeout=30s"],
+            check=True,
+            stdout=subprocess.DEVNULL, 
+            stderr=subprocess.DEVNULL
+        )
+        # Piccola pausa extra per sicurezza
+        time.sleep(2)
+    except subprocess.CalledProcessError:
+        print("⚠️ Warning: Il deployment ci sta mettendo troppo tempo!")
+
 if __name__ == "__main__":
     n_latency_states = 3
     n_replica_states = MAX_PODS  # 1..MAX_PODS
@@ -96,8 +118,15 @@ if __name__ == "__main__":
         new_replicas = max(MIN_PODS, min(MAX_PODS, new_replicas))
 
         if new_replicas != current_replicas:
+            print(f"Scaling: {current_replicas} -> {new_replicas} repliche")
             set_replicas(new_replicas)
-            time.sleep(5)
+            
+            # Chiamata alla funzione di attesa
+            wait_for_deployment_ready() 
+            
+        # Misuazione della latenza dopo il cambiamento
+        lat2 = measure_latency(num_requests=40)
+            
 
         lat2 = measure_latency(num_requests=40)
         lb2 = latency_bucket(lat2)

@@ -2,10 +2,13 @@ import subprocess
 import time
 import statistics
 import requests
+import os
 
 MIN_PODS = 1
 MAX_PODS = 4
-MINIKUBE_IP = "192.168.49.2"
+
+# Deinfizione dell'URL del servizio
+MINIKUBE_IP = os.getenv("MINIKUBE_IP", "192.168.49.2") # Per test sostituire con IP minikube corretto
 URL = f"http://{MINIKUBE_IP}:30080/"
 
 def set_replicas(n):

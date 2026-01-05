@@ -1,8 +1,10 @@
-import time
-import requests
-import statistics
+import time # Per misurare i tempi
+import requests # Per inviare richieste HTTP
+import statistics # Per calcolare statistiche
+import os # Per variabili d'ambiente
 
-MINIKUBE_IP = "192.168.49.2"  # sostituisci con quello vero
+# Deinfizione dell'URL del servizio
+MINIKUBE_IP = os.getenv("MINIKUBE_IP", "192.168.49.2") # Per test sostituire con IP minikube corretto
 URL = f"http://{MINIKUBE_IP}:30080/"
 
 def send_burst(n, sleep_between=0.0):
