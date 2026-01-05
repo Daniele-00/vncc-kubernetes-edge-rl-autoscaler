@@ -70,12 +70,12 @@ kube-rl-edge/
 │
 ├── results/                 # Log CSV e grafici generati
 │   ├── rl_log.csv           # Log autoscaler RL
-│   └── baseline_log.csv     # Log baseline (se eseguita)
+│   └── baseline_log.csv     # Log baseline
 │
 ├── dashboard_pretty.py      # Dashboard Streamlit “semplice”
-├── dashboard_ultra.py       # Dashboard Streamlit avanzata (Plotly, soglie, colori)
+├── dashboard_ultra.py       # Dashboard Streamlit avanzata
 ├── plot_results.py          # Analisi e grafici offline (Plotly)
-├── requirements.txt         # Dipendenze Python (consigliato)
+├── requirements.txt         # Dipendenze Python 
 └── README.md
 ```
 
@@ -113,8 +113,8 @@ Dentro Ubuntu (WSL2):
 ### 1️⃣ Clonare il repository
 
 ```bash
-git clone https://github.com/<tu-utente>/<nome-repo>.git
-cd <nome-repo>
+git clone https://github.com/Daniele-00/vncc-kubernetes-edge-rl-autoscaler.git
+cd vncc-kubernetes-edge-rl-autoscaler
 ```
 
 ### 2️⃣ Creare e attivare un virtual environment Python
@@ -314,9 +314,7 @@ L’autoscaler RL modella il problema come un **Markov Decision Process**:
 
 Aggiornamento Q-learning:
 
-\[
-Q(s,a) \leftarrow Q(s,a) + \alpha \left[ r + \gamma \max_{a'} Q(s',a') - Q(s,a) \right]
-\]
+- \Q(s,a) \leftarrow Q(s,a) + \alpha \left[ r + \gamma \max_{a'} Q(s',a') - Q(s,a) \right]
 
 Strategia di scelta azioni: **ε-greedy** (equilibrio tra esplorazione e sfruttamento).
 
@@ -343,13 +341,5 @@ I log vengono salvati in `results/baseline_log.csv` e possono essere confrontati
 - Edge multi-nodo / multi-servizio
 
 ---
-
-## 💡 Note per il docente
-
-Il progetto è pensato per essere:
-
-- **didattico**: mostra chiaramente Docker, Kubernetes, autoscaling, RL
-- **riproducibile**: tutti i comandi necessari sono elencati
-- **estensibile**: la struttura a directory separa chiaramente app, manifest K8s, RL, carico, analisi
 
 In caso di problemi di compatibilità con WSL2, il progetto è facilmente eseguibile anche su una macchina Linux nativa con Docker e minikube già installati.
