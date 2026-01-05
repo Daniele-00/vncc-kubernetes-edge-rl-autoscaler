@@ -103,7 +103,9 @@ if __name__ == "__main__":
     def state_index(lat_bucket, replicas):
         return lat_bucket * n_replica_states + (replicas - 1)
 
-    for episode in range(50):
+    #for episode in range(50):
+    episode = 0
+    while True:
         lat = measure_latency(num_requests=40)
         lb = latency_bucket(lat)
         s = state_index(lb, current_replicas)
@@ -141,4 +143,4 @@ if __name__ == "__main__":
         with open(log_file, "a", newline="") as f:
             writer = csv.writer(f)
             writer.writerow([datetime.now(), episode, lat2, current_replicas, r])
-
+        episode += 1
