@@ -41,7 +41,7 @@ while True:
     elif mode == "spike":
         # Traffico alto fisso (50 req/s)
         generate_request()
-        time.sleep(0.02)
+        time.sleep(0.005)
         
     elif mode == "onda":
         # Sinusoide
