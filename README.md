@@ -1,4 +1,4 @@
-# <img src="logo/logo_vncc" alt="Logo" width="32"> Kubernetes Edge Cloud with RL Autoscaler
+# <img src="logo/logo_vncc.png" alt="Logo" width="32"> Kubernetes Edge Cloud with RL Autoscaler
 
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue?logo=python&logoColor=white)](#)
 [![Kubernetes](https://img.shields.io/badge/Kubernetes-Minikube-326ce5?logo=kubernetes&logoColor=white)](#)
