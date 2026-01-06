@@ -1,4 +1,4 @@
-# ⚡ Kubernetes Edge Cloud with RL Autoscaler
+# <img src="logo/logo.png" alt="Logo" width="32"> Kubernetes Edge Cloud with RL Autoscaler
 
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue?logo=python&logoColor=white)](#)
 [![Kubernetes](https://img.shields.io/badge/Kubernetes-Minikube-326ce5?logo=kubernetes&logoColor=white)](#)
@@ -56,25 +56,25 @@ Il sistema è un loop di controllo chiuso (MAPE Loop: *Monitor, Analyze, Plan, E
 ```mermaid
 flowchart LR
     %% Generatore Traffico
-    LG[("Load Generator")] -- HTTP Requests --> SVC(Service NodePort)
+    LG["Load Generator"] -->|HTTP Requests| SVC["Service (NodePort)"]
 
     %% Cluster K8s
-    subgraph K8s [Kubernetes Cluster]
-        SVC --> POD1[App Pod]
-        SVC --> POD2[App Pod]
-        DEP[Deployment edge-app] -.-> POD1 & POD2
+    subgraph K8s["Kubernetes Cluster"]
+        SVC --> POD1["App Pod"]
+        SVC --> POD2["App Pod"]
+        DEP["Deployment edge-app"] -.-> POD1
+        DEP -.-> POD2
     end
 
     %% Autoscaler Logic
-    POD1 -->|Metrics (Latency)| RL[RL Autoscaler]
+    POD1 -->|Metrics (Latency)| RL["RL Autoscaler"]
     RL -->|Action (Scale UP/DOWN)| DEP
 
     %% Monitoring
-    RL -->|Writes| LOG[(CSV Logs)]
-    LOG --> DASH[Streamlit Dashboard]
-    DASH -- Config (SLA) --> RL
+    RL -->|Writes| LOG[("CSV Logs")]
+    LOG --> DASH["Streamlit Dashboard"]
+    DASH -->|Config (SLA)| RL
 ```
-
 ---
 
 ## 📁 Struttura del Progetto
