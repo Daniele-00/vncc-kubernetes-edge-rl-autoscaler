@@ -210,20 +210,20 @@ Per riprodurre i grafici di confronto:
 
 ## 🧠 Teoria: Q-Learning Setup
 
-Il problema è modellato come un **MDP (Markov Decision Process)**:
+Il problema è modellato come un **MDP** (Markov Decision Process):
 
-- **Stato** \(S\): tupla \(\{Latency\_Bucket, Current\_Replicas\}\)
-- **Azione** \(A\): *Scale UP* (+1), *Scale DOWN* (-1), *Hold* (0)
-- **Reward** \(R\):
-  \[
-  R = R_{SLA} - (C_{cost} \times N_{replicas})
-  \]
-  dove \(R_{SLA}\) è positivo se la latenza < target e negativo se > critica.
+* **Stato ($S$):** Tupla composta da `{Latency_Bucket, Current_Replicas}`.
+* **Azione ($A$):** Insieme discreto `{-1, 0, +1}` (Scale DOWN, Hold, Scale UP).
+* **Reward ($R$):**
+    $$R = R_{SLA} - (C_{cost} \times N_{replicas})$$
+    Dove $R_{SLA}$ è un valore positivo (es. +5) se la latenza è sotto il target, e negativo (es. -5) se supera la soglia critica. $C_{cost}$ è il peso del costo per ogni replica attiva.
 
-**Aggiornamento della Q-table:**
-\[
-Q(s,a) \leftarrow Q(s,a) + \alpha \left[r + \gamma \max_{a'} Q(s',a') - Q(s,a)\right]
-\]
+* **Q-Table Update (Bellman Equation):**
+    $$Q(s,a) \leftarrow Q(s,a) + \alpha \left[ r + \gamma \max_{a'} Q(s',a') - Q(s,a) \right]$$
+    
+    Dove:
+    * $\alpha$: Learning Rate (velocità di apprendimento)
+    * $\gamma$: Discount Factor (importanza del futuro)
 
 ---
 
