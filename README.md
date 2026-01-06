@@ -66,12 +66,12 @@ flowchart LR
     end
 
     %% Autoscaler Logic
-    POD1 -->|Metrics (Latency)| RL[🧠 RL Autoscaler]
+    POD1 -->|Metrics (Latency)| RL[RL Autoscaler]
     RL -->|Action (Scale UP/DOWN)| DEP
 
     %% Monitoring
     RL -->|Writes| LOG[(CSV Logs)]
-    LOG --> DASH[📊 Streamlit Dashboard]
+    LOG --> DASH[Streamlit Dashboard]
     DASH -- Config (SLA) --> RL
 ```
 
