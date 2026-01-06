@@ -4,7 +4,7 @@ import plotly.subplots as sp
 import os
 
 # Leggi i dati
-df = pd.read_csv("results/rl_log.csv")
+df = pd.read_csv("results/baseline_log.csv")
 df.columns = [c.strip().lower() for c in df.columns]
 
 # Crea una cartella per i grafici finali

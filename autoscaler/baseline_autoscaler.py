@@ -1,21 +1,21 @@
 import subprocess
 import time
 import requests
-import csv  # <--- Questo mancava!
+import csv  
 import os
 import json
 from datetime import datetime
+from reward_utils import reward_function
 
 # --- CONFIGURAZIONE ---
 MINIKUBE_IP = os.getenv("MINIKUBE_IP", "192.168.49.2")
 URL = f"http://{MINIKUBE_IP}:30080/"
 CONFIG_FILE = "autoscaler_config.json"
-# Nota: Puoi cambiare questo nome se vuoi salvare un file separato per la tesi
-# es. "results/dati_baseline.csv", altrimenti usa "results/rl_log.csv" per vederlo live nella dashboard
-LOG_FILE = "results/rl_log.csv" 
+
+LOG_FILE = "results/baseline_log.csv" 
 
 MIN_PODS = 1
-MAX_PODS = 4
+MAX_PODS = 10
 
 # Soglie di default (verranno sovrascritte dalla Dashboard se attiva)
 CURRENT_LOW_THR = 0.08
@@ -46,41 +46,21 @@ def measure_latency(num_requests=20):
             latencies.append(1.0) # Penalità timeout
     return sum(latencies) / len(latencies) if latencies else 1.0
 
-# Calcolo Reward "Fittizio" (solo per mostrarlo nel grafico insieme all'RL)
-def calculate_dummy_reward(lat, replicas, low, high):
-    r = 0.0
-    if lat < low: r += 5
-    elif lat < high: r += 2
-    else: r -= 5
-    r -= (replicas - 1) * 1.0
-    return r
-
 if __name__ == "__main__":
-    print("📉 Avvio BASELINE Autoscaler (Controllo da Dashboard attivo)")
+    print(" Avvio BASELINE Autoscaler (RESET: File log pulito)")
     
-    # Se il file non esiste, crea l'intestazione
-    if not os.path.exists(LOG_FILE):
-        with open(LOG_FILE, "w", newline="") as f:
-            csv.writer(f).writerow(["timestamp", "episode", "latency", "replicas", "reward"])
-
-    # Cerca di capire l'ultimo numero di episodio per continuare il grafico
-    episode = 0
-    try:
-        with open(LOG_FILE, "r") as f:
-            lines = f.readlines()
-            if len(lines) > 1:
-                last_line = lines[-1]
-                parts = last_line.split(",")
-                if len(parts) >= 2 and parts[1].isdigit():
-                     episode = int(parts[1]) + 1
-    except Exception as e:
-        print(f"Info: Impossibile leggere ultimo episodio ({e}). Parto da 0.")
+    # --- RESET FORZATO (MODALITÀ "w") ---
+    # Questo assicura che l'header ci sia SEMPRE.
+    with open(LOG_FILE, "w", newline="") as f:
+        csv.writer(f).writerow(["timestamp", "episode", "latency", "replicas", "reward"])
 
     current_replicas = set_replicas(1)
     wait_for_deployment_ready()
     
+    episode = 0 # Si riparte sempre da 0 per pulizia
+    
     while True:
-        # 1. LEGGI CONFIGURAZIONE DALLA DASHBOARD
+        # 1. LEGGI CONFIG DASHBOARD
         if os.path.exists(CONFIG_FILE):
             try:
                 with open(CONFIG_FILE, "r") as f:
@@ -90,31 +70,32 @@ if __name__ == "__main__":
             except:
                 pass
 
-        # 2. Misura
+        # 2. MISURA
         lat = measure_latency(num_requests=30)
         
-        # 3. Logica BASELINE (Rule-Based: IF/ELSE)
+        # 3. LOGICA BASELINE
         new_replicas = current_replicas
-        
         if lat > CURRENT_HIGH_THR and current_replicas < MAX_PODS:
-            print(f"⚠️ Lat {lat:.3f}s > {CURRENT_HIGH_THR}s -> Scaling UP")
+            print(f"⚠️ Lat {lat:.3f}s > {CURRENT_HIGH_THR}s -> UP")
             new_replicas += 1
         elif lat < CURRENT_LOW_THR and current_replicas > MIN_PODS:
-            print(f"✅ Lat {lat:.3f}s < {CURRENT_LOW_THR}s -> Scaling DOWN")
+            print(f"✅ Lat {lat:.3f}s < {CURRENT_LOW_THR}s -> DOWN")
             new_replicas -= 1
         else:
-            print(f"➡️ Lat {lat:.3f}s OK. (Target: {CURRENT_LOW_THR}-{CURRENT_HIGH_THR})")
+            print(f"➡️ Lat {lat:.3f}s OK.")
 
-        # 4. Attuazione
+        # 4. ATTUAZIONE
         if new_replicas != current_replicas:
             set_replicas(new_replicas)
             wait_for_deployment_ready()
             current_replicas = new_replicas
         
-        # 5. Log (con reward calcolato solo per confronto visivo)
+        # 5. LOG
         lat_post = measure_latency(num_requests=20)
-        rew = calculate_dummy_reward(lat_post, current_replicas, CURRENT_LOW_THR, CURRENT_HIGH_THR)
+        # Usiamo la funzione definita sopra
+        rew = reward_function(lat_post, current_replicas, CURRENT_LOW_THR, CURRENT_HIGH_THR)
 
+        # Qui usiamo "a" (append) per aggiungere sotto l'header
         with open(LOG_FILE, "a", newline="") as f:
             writer = csv.writer(f)
             writer.writerow([datetime.now(), episode, lat_post, current_replicas, rew])

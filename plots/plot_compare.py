@@ -5,8 +5,8 @@ import os
 # 1. Carica i due file separati
 # Assicurati di aver rinominato i file come ti ho detto!
 try:
-    df_rl = pd.read_csv("results/dati_rl.csv")
-    df_base = pd.read_csv("results/dati_baseline.csv")
+    df_rl = pd.read_csv("results/rl_log.csv")
+    df_base = pd.read_csv("results/baseline_log.csv")
 except FileNotFoundError:
     print("ERRORE: Non trovo i file 'results/dati_rl.csv' o 'results/dati_baseline.csv'.")
     print("Ricordati di eseguire i test e rinominare manualmente i file di log!")

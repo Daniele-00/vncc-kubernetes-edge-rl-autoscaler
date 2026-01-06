@@ -5,8 +5,9 @@ import statistics
 import requests
 import csv
 import os
-import json # <--- Importante
+import json
 from datetime import datetime
+from reward_utils import reward_function # Importa la funzione di reward
 
 # --- CONFIGURAZIONE INIZIALE ---
 MINIKUBE_IP = os.getenv("MINIKUBE_IP", "192.168.49.2")
@@ -14,10 +15,10 @@ URL = f"http://{MINIKUBE_IP}:30080/"
 CONFIG_FILE = "autoscaler_config.json"
 
 MIN_PODS = 1
-MAX_PODS = 4
+MAX_PODS = 10
 ACTIONS = [0, 1, 2]  # 0=giù, 1=stop, 2=su
 
-# Valori di default (verranno sovrascritti dalla dashboard)
+# Valori di default (verranno sovrascritti dalla Dashboard se attiva)
 CURRENT_LOW_THR = 0.08
 CURRENT_HIGH_THR = 0.20
 
@@ -69,18 +70,6 @@ def latency_bucket(lat, low_t, high_t):
     else:
         return 2  # Alta (SCALARE!)
 
-def reward_function(lat, replicas, low_t, high_t):
-    r = 0.0
-    if lat < low_t:
-        r += 5
-    elif lat < high_t:
-        r += 2
-    else:
-        r -= 5  # Penalità forte
-    
-    r -= (replicas - 1) * 1.0
-    return r
-
 if __name__ == "__main__":
     n_latency_states = 3
     n_replica_states = MAX_PODS 
@@ -104,7 +93,7 @@ if __name__ == "__main__":
     def state_index(lat_bucket, replicas):
         return lat_bucket * n_replica_states + (replicas - 1)
 
-    print(f"🚀 Avvio RL Autoscaler con Configurazione Dinamica")
+    print(f" Avvio RL Autoscaler con Configurazione Dinamica")
     
     episode = 0
     while True:
