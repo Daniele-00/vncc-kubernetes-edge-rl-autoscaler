@@ -55,31 +55,24 @@ Il sistema è un loop di controllo chiuso (MAPE Loop: *Monitor, Analyze, Plan, E
 
 ```mermaid
 flowchart LR
-  %% Client / traffico
-  LG["Load Generator<br/>(Python + requests)"]
-    -->|HTTP traffic|
-  SVC["Service NodePort<br/>(edge-app-service:30080)"]
+    %% Generatore Traffico
+    LG[("Load Generator")] -- "HTTP Requests" --> SVC("Service NodePort")
 
-  %% Cluster Kubernetes
-  subgraph K8s["Kubernetes (Minikube)"]
-    SVC --> POD1["Edge App Pod<br/>(Flask + Docker)"]
-    SVC --> POD2["Edge App Pod<br/>(Flask + Docker)"]
+    %% Cluster K8s
+    subgraph K8s [Kubernetes Cluster]
+        SVC --> POD1["App Pod"]
+        SVC --> POD2["App Pod"]
+        DEP["Deployment edge-app"] -.-> POD1 & POD2
+    end
 
-    DEP["Deployment edge-app"]
-      -. "manages replicas" .->
-    POD1
+    %% Autoscaler Logic
+    POD1 -->|"Metrics (Latency)"| RL["🧠 RL Autoscaler"]
+    RL -->|"Action (Scale UP/DOWN)"| DEP
 
-    DEP -. "manages replicas" .-> POD2
-  end
-
-  %% Autoscaler
-  POD1 -->|measure latency| RL["Autoscaler<br/>RL (Q-Learning)"]
-  RL -->|kubectl scale| DEP
-
-  %% Logging + Dashboard
-  RL -->|write log| LOG["results/rl_log.csv"]
-  LOG -->|read metrics| DASH["Dashboard<br/>(Streamlit + Plotly)"]
-  DASH -->|SLA thresholds + scenario| RL
+    %% Monitoring
+    RL -->|Writes| LOG[("CSV Logs")]
+    LOG --> DASH["📊 Streamlit Dashboard"]
+    DASH -- "Config (SLA)" --> RL
 ```
 ---
 
