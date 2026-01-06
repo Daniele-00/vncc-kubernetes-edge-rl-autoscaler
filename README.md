@@ -1,345 +1,255 @@
-# Kubernetes Edge Cloud with Reinforcement Learning Autoscaler
+# ⚡ Kubernetes Edge Cloud with RL Autoscaler
 
-Progetto per l’insegnamento **Virtual Networks and Cloud Computing** (a.a. **2024/25**)  
-Autore: **Daniele Nanni Cirulli**
+[![Python](https://img.shields.io/badge/Python-3.10%2B-blue?logo=python&logoColor=white)](#)
+[![Kubernetes](https://img.shields.io/badge/Kubernetes-Minikube-326ce5?logo=kubernetes&logoColor=white)](#)
+[![Docker](https://img.shields.io/badge/Docker-Container-2496ed?logo=docker&logoColor=white)](#)
+[![Streamlit](https://img.shields.io/badge/Streamlit-Dashboard-FF4B4B?logo=streamlit&logoColor=white)](#)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green)](#license)
 
-Questo progetto implementa un mini **Edge Cloud** basato su **Kubernetes** in cui il numero di repliche di un microservizio viene gestito da un autoscaler intelligente basato su **Reinforcement Learning (Q-learning)**.
+> Progetto per l’insegnamento **Virtual Networks and Cloud Computing** (a.a. **2024/25**)  
+> Autore: **Daniele Nanni Cirulli**
 
-L’obiettivo è mostrare, in modo riproducibile, come sia possibile:
-
-- containerizzare un’applicazione “edge”
-- orchestrarla con Kubernetes
-- generare un carico variabile
-- misurare la latenza
-- usare un agente RL per decidere dinamicamente il numero di repliche (scaling up/down) in funzione delle prestazioni
-
-Il repository include:
-
-- codice dell’applicazione
-- manifest Kubernetes
-- autoscaler RL e baseline
-- script di generazione carico
-- strumenti per visualizzare i risultati (**Plotly + Streamlit**)
-- istruzioni complete per riprodurre l’esperimento
+Questo progetto implementa un **Edge Cloud Autoscaler** su **Kubernetes** basato su **Reinforcement Learning (Q-Learning)**.  
+L’agente apprende autonomamente come scalare le risorse (Pod) per mantenere bassa la latenza minimizzando i costi, ed è confrontato con un approccio tradizionale **rule-based** (baseline a soglia fissa).
 
 ---
 
-## 🔍 Overview dell’architettura
+## 📚 Indice
 
-### Architettura logica (high level)
+- [📸 Dashboard Preview](#-dashboard-preview)
+- [🌟 Caratteristiche Principali](#-caratteristiche-principali)
+- [🏗️ Architettura del Sistema](#️-architettura-del-sistema)
+- [📁 Struttura del Progetto](#-struttura-del-progetto)
+- [🚀 Installazione](#-installazione)
+- [🎮 Esecuzione della Demo](#-esecuzione-della-demo)
+- [🧪 Metodologia di Confronto (Workflow Tesi)](#-metodologia-di-confronto-workflow-tesi)
+- [🧠 Teoria: Q-Learning Setup](#-teoria-q-learning-setup)
+- [✅ Risultati Ottenuti](#-risultati-ottenuti)
+- [📄 License](#-license)
+
+---
+
+## 📸 Dashboard Preview
+
+> Inserisci qui uno screenshot della Dashboard in modalità **Confronto Diretto**.
+
+![Dashboard Screenshot](results/dashboard_preview.png)
+
+---
+
+## 🌟 Caratteristiche Principali
+
+- **🧠 Agente RL intelligente:** Q-Learning per apprendere la policy di scaling senza regole preimpostate.
+- **⚖️ Baseline comparison:** autoscaler tradizionale (rule-based) per confronto sperimentale.
+- **📊 Control Center interattivo:** dashboard Streamlit per monitorare metriche in tempo reale, cambiare scenari di traffico e modificare soglie SLA “on the fly”.
+- **🌊 Traffic injection:** generatore di carico per simulare scenari realistici (*Calma, Spike, Onda sinusoidale, Stop*).
+- **🐳 Cloud-native:** containerizzazione + orchestrazione su Kubernetes (Minikube).
+
+> Nota: anche la baseline produce uno **score/reward di valutazione** (calcolato a posteriori) per poter confrontare baseline e RL sulla **stessa metrica**. La baseline **non** usa tale reward per decidere.
+
+---
+
+## 🏗️ Architettura del Sistema
+
+Il sistema è un loop di controllo chiuso (MAPE Loop: *Monitor, Analyze, Plan, Execute*).
 
 ```mermaid
 flowchart LR
-    %% Client / traffico
-    LG["Load Generator (Python + requests)"] -->|"HTTP traffic"| SVC["Service NodePort (edge-app-service:30080)"]
+    %% Generatore Traffico
+    LG[("Load Generator")] -- HTTP Requests --> SVC(Service NodePort)
 
-    %% Cluster Kubernetes
-    subgraph K8s["Kubernetes (minikube)"]
-        SVC --> POD["Edge App Pod (Flask + Docker)"]
-        DEP["Deployment edge-app"] -. "controlla repliche" .-> POD
+    %% Cluster K8s
+    subgraph K8s [Kubernetes Cluster]
+        SVC --> POD1[App Pod]
+        SVC --> POD2[App Pod]
+        DEP[Deployment edge-app] -.-> POD1 & POD2
     end
 
-    %% RL Autoscaler
-    POD -->|"misura latenza"| RL["RL Autoscaler (Q-learning)"]
-    RL -->|"kubectl scale"| DEP
+    %% Autoscaler Logic
+    POD1 -->|Metrics (Latency)| RL[🧠 RL Autoscaler]
+    RL -->|Action (Scale UP/DOWN)| DEP
 
-    %% Logging + Dashboard
-    RL -->|"scrive log"| LOG["results/rl_log.csv"]
-    LOG --> DASH["Dashboard (Streamlit + Plotly)"]
+    %% Monitoring
+    RL -->|Writes| LOG[(CSV Logs)]
+    LOG --> DASH[📊 Streamlit Dashboard]
+    DASH -- Config (SLA) --> RL
 ```
+
 ---
 
-## 📁 Struttura del repository
+## 📁 Struttura del Progetto
 
 ```text
 kube-rl-edge/
-│
-├── app/                     # Applicazione edge (Flask) + Dockerfile
-│   ├── app.py
-│   └── Dockerfile
-│
-├── k8s/                     # Manifest Kubernetes
-│   └── deployment.yaml      # Deployment + Service NodePort
-│
-├── autoscaler/              # Autoscaler intelligenti
-│   ├── rl_autoscaler.py     # Autoscaling RL (Q-learning)
-│   └── baseline_autoscaler.py   # Autoscaling a soglia fissa (baseline)
-│
-├── load/                    # Generatore di traffico
-│   └── load_generator.py
-│
-├── results/                 # Log CSV e grafici generati
-│   ├── rl_log.csv           # Log autoscaler RL
-│   └── baseline_log.csv     # Log baseline
-│
-├── dashboard_pretty.py      # Dashboard Streamlit “semplice”
-├── dashboard_ultra.py       # Dashboard Streamlit avanzata
-├── plot_results.py          # Analisi e grafici offline (Plotly)
-├── requirements.txt         # Dipendenze Python 
-└── README.md
+├── app/                  # Microservizio Edge (Flask) + Dockerfile
+├── k8s/                  # Manifest Kubernetes (Deployment + Service)
+├── autoscaler/           # Logica di Autoscaling
+│   ├── rl_autoscaler.py        # Agente Q-Learning
+│   └── baseline_autoscaler.py  # Autoscaler Rule-Based
+├── load/                 # Generatore di traffico (Python)
+├── results/              # CSV log e output (grafici/screenshot)
+├── dashboard_ultra.py    # Control Center (Web UI)
+├── plot_results.py       # Script per generare grafici (tesi)
+└── requirements.txt      # Dipendenze Python
 ```
 
-> Se `requirements.txt` non esiste ancora, puoi crearlo con le librerie usate: `flask`, `requests`, `numpy`, `pandas`, `plotly`, `streamlit`.
-
 ---
 
-## 🧱 Prerequisiti
+## 🚀 Installazione
 
-### Opzione A – Ambiente tipico (Windows + WSL2)
+### 1) Prerequisiti
 
-- Windows 10/11
-- WSL2 con Ubuntu 22.04 (o simile)
-- Supporto virtualizzazione attivo nel BIOS
+- Docker Desktop (o Docker Engine su Linux)
+- Minikube & kubectl
+- Python 3.10+
 
-Dentro Ubuntu (WSL2):
+### 2) Setup iniziale
 
-- Docker Engine
-- minikube
-- kubectl
-- Python 3.10+ e `python3-venv`
-
-### Opzione B – Linux nativo
-
-- Distribuzione Linux (Ubuntu consigliato)
-- Docker Engine
-- minikube
-- kubectl
-- Python 3.10+ e `python3-venv`
-
----
-
-## ⚙️ Setup passo–passo
-
-### 1️⃣ Clonare il repository
+Clona il repository e prepara l’ambiente virtuale:
 
 ```bash
 git clone https://github.com/Daniele-00/vncc-kubernetes-edge-rl-autoscaler.git
 cd vncc-kubernetes-edge-rl-autoscaler
-```
 
-### 2️⃣ Creare e attivare un virtual environment Python
-
-```bash
 python3 -m venv venv
-source venv/bin/activate
+source venv/bin/activate   # Windows: venv\Scripts\activate
+
+pip install -r requirements.txt
 ```
 
-Installare le dipendenze:
+### 3) Avvio del cluster
 
-```bash
-pip install --upgrade pip
-pip install flask requests numpy pandas plotly streamlit
-# oppure, se presente:
-# pip install -r requirements.txt
-```
-
-### 3️⃣ Avviare minikube
+Avvia Minikube e deploya l’applicazione:
 
 ```bash
 minikube start --driver=docker
-kubectl get nodes
-```
+eval $(minikube docker-env)             # usa il Docker daemon di Minikube
 
-### 4️⃣ Build dell’immagine Docker dell’applicazione edge
-
-```bash
-cd app
-docker build -t edge-app:latest .
-cd ..
-```
-
-Caricare l’immagine dentro minikube:
-
-```bash
-minikube image load edge-app:latest
-```
-
-### 5️⃣ Deploy su Kubernetes
-
-```bash
+docker build -t edge-app:latest ./app
 kubectl apply -f k8s/deployment.yaml
+kubectl apply -f k8s/service.yaml       # se presente
+```
+
+Verifica che tutto sia pronto:
+
+```bash
 kubectl get pods
-kubectl get svc
-```
-
-Recuperare l’IP del nodo minikube:
-
-```bash
-minikube ip
-# es. 192.168.49.2
-```
-
-Test (da Ubuntu/WSL):
-
-```bash
-curl http://<MINIKUBE_IP>:30080/
-# output atteso: OK
-```
-
-### 6️⃣ Configurare gli script con l’IP di minikube
-
-Nei file:
-
-- `load/load_generator.py`
-- `autoscaler/rl_autoscaler.py`
-- `autoscaler/baseline_autoscaler.py` (se usata)
-
-sostituire:
-
-```python
-MINIKUBE_IP = "<MINIKUBE_IP>"
-```
-
-con l’IP reale, ad esempio:
-
-```python
-MINIKUBE_IP = "192.168.49.2"
-URL = f"http://{MINIKUBE_IP}:30080/"
+# Attendi che lo stato sia Running
 ```
 
 ---
 
-## 🚀 Esecuzione della demo completa
+## 🎮 Esecuzione della Demo
 
-Usa **4 terminali** (tutti con `source venv/bin/activate`).
+Per una dimostrazione completa, apri **4 terminali**:
 
-### Terminale 1 – Monitor Kubernetes
+### Terminale 1 — Monitor Kubernetes
 
-Mostra in tempo reale il numero di repliche:
+Osserva i Pod crearsi/distruggersi in tempo reale:
 
 ```bash
 kubectl get deploy edge-app -w
 ```
 
-### Terminale 2 – Generatore di carico
+### Terminale 2 — Generatore di carico
+
+Inietta traffico HTTP verso il cluster:
 
 ```bash
+export MINIKUBE_IP=$(minikube ip)
 python load/load_generator.py
 ```
 
-Output tipico:
+> Nota: lo scenario si comanda dalla Dashboard.
 
-```text
-Calma: 0.06...
-Carico: 0.20...
-Calma: 0.07...
-Carico: 0.19...
-```
+### Terminale 3 — Autoscaler
 
-### Terminale 3 – Autoscaler RL (Q-learning)
+Scegli se avviare l’agente RL o la baseline.
 
+**Opzione A: Reinforcement Learning**
 ```bash
+export MINIKUBE_IP=$(minikube ip)
 python autoscaler/rl_autoscaler.py
 ```
 
-Output esemplificativo:
-
-```text
-Episode 0: lat=0.210s, replicas=1, reward=0.00
-deployment.apps/edge-app scaled
-Episode 1: lat=0.120s, replicas=2, reward=3.00
-Episode 2: lat=0.085s, replicas=2, reward=4.00
-...
+**Opzione B: Baseline (Rule-Based)**
+```bash
+export MINIKUBE_IP=$(minikube ip)
+python autoscaler/baseline_autoscaler.py
 ```
 
-Genera il file:
-
-- `results/rl_log.csv`
-
-In parallelo, nel Terminale 1 compaiono nuove righe quando cambia il numero di repliche:
-
-```text
-NAME        READY   UP-TO-DATE   AVAILABLE   AGE
-edge-app    1/1     1            1           5m
-edge-app    2/2     2            2           6m   # scaling up
-...
-```
-
-### Terminale 4 – Dashboard interattiva
-
-Dashboard avanzata:
+### Terminale 4 — Dashboard (Control Center)
 
 ```bash
-streamlit run dashboard_ultra.py --server.address=localhost --server.port=8502
+streamlit run dashboard_ultra.py
 ```
 
-Nel browser:
-
-- `http://localhost:8502`
-
-La dashboard mostra:
-
-- KPI: latenza media, repliche medie, reward medio
-- grafico combinato latenza + repliche (con soglie)
-- grafico reward nel tempo
-- tabella delle ultime decisioni dell’agente
+Apri il browser all’indirizzo mostrato (es. `http://localhost:8501`).
 
 ---
 
-## 📊 Analisi offline dei risultati
+## 🧪 Metodologia di Confronto (Workflow Tesi)
 
-Dopo una run dell’RL (e opzionalmente della baseline):
+Per riprodurre i grafici di confronto:
 
-```bash
-python plot_results.py
-```
-
-Lo script legge:
-
-- `results/rl_log.csv`
-- `results/baseline_log.csv` (se presente)
-
-e genera grafici HTML, ad es.:
-
-- `results/rl_latency.html`
-- `results/rl_replicas.html`
-- `results/rl_reward.html`
-
-Apribili da browser (doppio click su Windows / Linux).
+1. Avvia `rl_autoscaler.py` e imposta lo scenario **Onda** dalla Dashboard.
+2. Lascia girare per ~10 minuti (training), poi ferma lo script (**Ctrl+C**).
+3. Resetta il cluster:
+   ```bash
+   kubectl scale deploy edge-app --replicas=1
+   ```
+4. Avvia `baseline_autoscaler.py` con lo **stesso scenario**.
+5. Lascia girare per ~5 minuti, poi ferma lo script.
+6. Nella Dashboard seleziona **⚔️ CONFRONTO DIRETTO**.
+7. Esegui lo script di plotting (adatta al tuo nome file):
+   ```bash
+   python plot_compare.py
+   ```
+   per generare PNG/HTML per la documentazione.
 
 ---
 
-## 🧠 Reinforcement Learning in breve
+## 🧠 Teoria: Q-Learning Setup
 
-L’autoscaler RL modella il problema come un **Markov Decision Process**:
+Il problema è modellato come un **MDP (Markov Decision Process)**:
 
-- **Stato** \(s\):
-  - livello di latenza (bassa / media / alta)
-  - numero corrente di repliche
-- **Azioni** \(a\):
-  - \(a \in \{-1, 0, +1\}\) (diminuire, mantenere, aumentare repliche)
-- **Reward**:
-  - positivo se la latenza è sotto soglia con poche repliche
-  - negativo se la latenza è alta o vengono usate troppe repliche
+- **Stato** \(S\): tupla \(\{Latency\_Bucket, Current\_Replicas\}\)
+- **Azione** \(A\): *Scale UP* (+1), *Scale DOWN* (-1), *Hold* (0)
+- **Reward** \(R\):
+  \[
+  R = R_{SLA} - (C_{cost} \times N_{replicas})
+  \]
+  dove \(R_{SLA}\) è positivo se la latenza < target e negativo se > critica.
 
-Aggiornamento Q-learning:
-
-- \Q(s,a) \leftarrow Q(s,a) + \alpha \left[ r + \gamma \max_{a'} Q(s',a') - Q(s,a) \right]
-
-Strategia di scelta azioni: **ε-greedy** (equilibrio tra esplorazione e sfruttamento).
+**Aggiornamento della Q-table:**
+\[
+Q(s,a) \leftarrow Q(s,a) + \alpha \left[r + \gamma \max_{a'} Q(s',a') - Q(s,a)\right]
+\]
 
 ---
 
-## 🔬 Baseline autoscaler
+## ✅ Risultati Ottenuti
 
-La baseline implementa una politica più semplice:
+L’agente RL dimostra di saper:
 
-- se la latenza > soglia alta → scala “up” (aumenta repliche)
-- se la latenza < soglia bassa → scala “down” (riduce repliche)
-- altrimenti mantiene
-
-I log vengono salvati in `results/baseline_log.csv` e possono essere confrontati con l’RL tramite `plot_results.py`.
+- **Ridurre i costi** diminuendo le repliche quando il traffico cala, più rapidamente della baseline.
+- **Stabilizzare il sistema** evitando l’effetto “yo-yo” (*flapping*) tipico degli algoritmi a soglia fissa.
+- **Adattarsi a SLA dinamici** modificati in tempo reale tramite la Dashboard.
 
 ---
 
-## ✅ Possibili estensioni
+## 💡 Consigli per fare bella figura
 
-- Epsilon decay (ridurre esplorazione nel tempo)
-- Penalità per troppi cambi di repliche (stabilità)
-- Stati arricchiti (CPU, throughput, percentili di latenza)
-- RL con approssimazione di funzione (DQN)
-- Edge multi-nodo / multi-servizio
+1. **Screenshot:** fai uno screenshot reale della dashboard in modalità *Confronto Diretto* e salvalo come `results/dashboard_preview.png`. Verrà mostrato automaticamente nel README.
+2. **IP Minikube:** l’uso di `export MINIKUBE_IP=$(minikube ip)` evita di modificare il codice ogni volta.
+   - Windows PowerShell:  
+     ```powershell
+     $env:MINIKUBE_IP = (minikube ip)
+     ```
+3. **Diagramma Mermaid:** GitHub renderizza nativamente il diagramma Mermaid ed è perfetto per la relazione.
 
 ---
 
-In caso di problemi di compatibilità con WSL2, il progetto è facilmente eseguibile anche su una macchina Linux nativa con Docker e minikube già installati.
+## 📄 License
+
+Distribuito sotto licenza **MIT**. Vedi `LICENSE` per dettagli.
