@@ -7,7 +7,7 @@ app = Flask(__name__)
 def index():
     start = time.time()
     # Simula 50 ms di CPU
-    while time.time() - start < 0.05:
+    while time.time() - start < 0.20:
         pass
     return "OK"
 
