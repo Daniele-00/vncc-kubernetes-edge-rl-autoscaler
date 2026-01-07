@@ -8,7 +8,6 @@ import threading
 MINIKUBE_IP = os.getenv("MINIKUBE_IP", "192.168.49.2")
 URL = f"http://{MINIKUBE_IP}:30080/"
 CMD_FILE = "current_scenario.txt"
-
 # Variabili condivise tra i thread
 CURRENT_MODE = "calma"
 CURRENT_SLEEP = 0.5
@@ -37,12 +36,12 @@ def worker_task(worker_id):
 
 # --- CERVELLO CENTRALE ---
 if __name__ == "__main__":
-    print(f"🔥 MULTI-THREAD Load Controller (10 Workers) verso: {URL}")
+    print(f"🔥 MULTI-THREAD Load Controller (15 Workers) verso: {URL}")
     print(f"In attesa di comandi in '{CMD_FILE}'...")
 
-    # 1. Avvia 10 Thread paralleli (come avere 10 terminali aperti)
+    # 1. Avvia 15 Thread paralleli (come avere 15 terminali aperti)
     threads = []
-    for i in range(10):
+    for i in range(15):
         t = threading.Thread(target=worker_task, args=(i,))
         t.daemon = True # Muoiono se chiudi lo script principale
         t.start()

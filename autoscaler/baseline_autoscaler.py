@@ -18,8 +18,8 @@ MIN_PODS = 1
 MAX_PODS = 10
 
 # Soglie di default (verranno sovrascritte dalla Dashboard se attiva)
-CURRENT_LOW_THR = 0.08
-CURRENT_HIGH_THR = 0.20
+CURRENT_LOW_THR = 0.20
+CURRENT_HIGH_THR = 0.30
 
 def set_replicas(n):
     n = max(MIN_PODS, min(MAX_PODS, n))
@@ -34,16 +34,20 @@ def wait_for_deployment_ready():
         time.sleep(1)
     except:
         pass
-
-def measure_latency(num_requests=20):
+    
+def measure_latency(num_requests=10):
     latencies = []
     for _ in range(num_requests):
         start = time.time()
         try:
-            requests.get(URL, timeout=1)
+            requests.get(URL, timeout=1.0)
             latencies.append(time.time() - start)
         except:
-            latencies.append(1.0) # Penalità timeout
+            latencies.append(1.0)
+        
+        # Pausa per non intasare il server e avere dati puliti (0.20s)
+        time.sleep(0.05)
+            
     return sum(latencies) / len(latencies) if latencies else 1.0
 
 if __name__ == "__main__":
