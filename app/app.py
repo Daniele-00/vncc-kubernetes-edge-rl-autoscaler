@@ -6,7 +6,7 @@ app = Flask(__name__)
 @app.route("/")
 def index():
     start = time.time()
-    # Simula 50 ms di CPU
+    # Simula 200 ms di CPU
     while time.time() - start < 0.20:
         pass
     return "OK"

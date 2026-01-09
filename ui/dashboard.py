@@ -392,7 +392,7 @@ modo_scelto = st.sidebar.radio(
     help="Seleziona il pattern di traffico da simulare"
 )
 
-if st.sidebar.button("Apply Scenario", use_container_width=True):
+if st.sidebar.button("Apply Scenario", width='stretch'):
     with open(CMD_FILE, "w") as f:
         f.write(modo_scelto)
     st.sidebar.success(f"Attivato: {modo_scelto}")
@@ -446,126 +446,167 @@ def load_data(filepath):
 # CARICAMENTO DATI IN BASE ALLA MODALITÀ
 # ═══════════════════════════════════════════════════════════════════════════
 
+# Inizializza variabili per evitare NameError
+df = pd.DataFrame()
+df_rl = pd.DataFrame()
+df_baseline = pd.DataFrame()
+
 if data_source == " Confronto Diretto":
-    # MODALITÀ CONFRONTO
+    # ═══════════════════════════════════════════════════════════════════════════
+    # MODALITÀ CONFRONTO AVANZATO (SCIENTIFICO)
+    # ═══════════════════════════════════════════════════════════════════════════
+    
+    # 1. Caricamento Dati
     df_rl = load_data(RL_LOG)
-    df_base = load_data(BASE_LOG)
+    df_baseline = load_data(BASE_LOG) # Usa BASE_LOG
     
-    if df_rl.empty and df_base.empty:
-        st.warning("⚠️ Nessun dato disponibile. Avvia almeno un test!")
+    if df_rl.empty and df_baseline.empty:
+        st.warning("⚠️ Nessun dato disponibile. Avvia i test per generare i CSV.")
         st.stop()
+
+    # Uniformare la lunghezza per le statistiche (opzionale, ma utile per confronti diretti)
+    # Qui calcoliamo le medie su tutto il dataset disponibile
     
-    st.markdown("---")
+    st.markdown("### Analisi Statistiche")
+
+    # 2. CALCOLO KPI MATEMATICI
+    # Gestione casi vuoti
+    mean_lat_rl = df_rl['latency'].mean() if not df_rl.empty else 0
+    mean_lat_bl = df_baseline['latency'].mean() if not df_baseline.empty else 0
     
-    # Statistiche comparative
-    col1, col2, col3, col4 = st.columns(4)
+    mean_rep_rl = df_rl['replicas'].mean() if not df_rl.empty else 0
+    mean_rep_bl = df_baseline['replicas'].mean() if not df_baseline.empty else 0
     
-    if not df_rl.empty:
-        with col1:
-            st.metric("RL - Latenza Media", f"{df_rl['latency'].mean():.3f}s")
-        with col2:
-            st.metric("RL - Repliche Medie", f"{df_rl['replicas'].mean():.1f}")
+    # Calcolo Violazioni SLA (Quante volte latency > mid_thr)
+    sla_viol_rl = len(df_rl[df_rl['latency'] > mid_thr]) if not df_rl.empty else 0
+    sla_viol_bl = len(df_baseline[df_baseline['latency'] > mid_thr]) if not df_baseline.empty else 0
+
+    # Calcolo Delta Percentuali (Risparmio/Miglioramento)
+    # Se Baseline è 0, evito divisione per zero
+    delta_lat_pct = ((mean_lat_rl - mean_lat_bl) / mean_lat_bl * 100) if mean_lat_bl > 0 else 0
+    delta_rep_pct = ((mean_rep_rl - mean_rep_bl) / mean_rep_bl * 100) if mean_rep_bl > 0 else 0
     
-    if not df_base.empty:
-        with col3:
-            st.metric("Baseline - Latenza Media", f"{df_base['latency'].mean():.3f}s")
-        with col4:
-            st.metric("Baseline - Repliche Medie", f"{df_base['replicas'].mean():.1f}")
+    # 3. VISUALIZZAZIONE KPI (COLONNE)
+    kpi1, kpi2, kpi3, kpi4 = st.columns(4)
+
+    with kpi1:
+        st.metric(
+            "Latenza Media", 
+            f"{mean_lat_rl:.3f} s", 
+            f"{delta_lat_pct:.1f}% vs Base", 
+            delta_color="inverse" # Verde se scende (Latenza minore è meglio)
+        )
     
-    st.markdown("---")
-    
-    # Grafico Confronto Latenza
-    colA, colB = st.columns(2)
-    
-    with colA:
-        fig = go.Figure()
-        
-        if not df_rl.empty:
-            fig.add_trace(go.Scatter(
-                x=df_rl["episode"], 
-                y=df_rl["latency"],
-                name="RL Agent",
-                line=dict(width=3, color="#6366f1"),
-                mode="lines+markers",
-                marker=dict(size=5),
-                hovertemplate='<b>RL - Ep. %{x}</b><br>Latenza: %{y:.3f}s<extra></extra>'
-            ))
-        
-        if not df_base.empty:
-            fig.add_trace(go.Scatter(
-                x=df_base["episode"], 
-                y=df_base["latency"],
-                name="Baseline",
-                line=dict(width=3, color="#ef4444", dash="dash"),
-                mode="lines+markers",
-                marker=dict(size=5),
-                hovertemplate='<b>Baseline - Ep. %{x}</b><br>Latenza: %{y:.3f}s<extra></extra>'
-            ))
-        
-        fig.add_hline(y=low_thr, line_dash="dash", line_color="#10b981", line_width=2, annotation_text=f"Target ({low_thr}s)")
-        fig.add_hline(y=mid_thr, line_dash="dash", line_color="#ef4444", line_width=2, annotation_text=f"Critico ({mid_thr}s)")
-        
-        fig.update_layout(
-            title=dict(text="Confronto Latenza", font=dict(size=18, color="#e5e7eb"), x=0),
-            xaxis=dict(title="Episodio", title_font=dict(size=12, color="#9ca3af"), tickfont=dict(color="#d1d5db", size=10), 
-                      rangemode="tozero", gridcolor="rgba(75, 85, 99, 0.2)", showgrid=True, zeroline=False),
-            yaxis=dict(title="Latenza (s)", title_font=dict(size=12, color="#9ca3af"), tickfont=dict(color="#d1d5db", size=10),
-                      rangemode="tozero", gridcolor="rgba(75, 85, 99, 0.2)", showgrid=True, zeroline=False),
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0, font=dict(size=11, color="#d1d5db"),
-                       bgcolor="rgba(17, 24, 39, 0.8)", bordercolor="rgba(75, 85, 99, 0.3)", borderwidth=1),
-            plot_bgcolor="rgba(10, 14, 39, 0.5)",
-            paper_bgcolor="rgba(10, 14, 39, 0)",
-            height=400,
-            margin=dict(l=50, r=30, t=60, b=40),
-            hovermode='x unified'
+    with kpi2:
+        st.metric(
+            "Costo Medio (Repliche)", 
+            f"{mean_rep_rl:.2f}", 
+            f"{delta_rep_pct:.1f}% vs Base", 
+            delta_color="inverse" # Verde se scende (Meno repliche è meglio)
         )
         
-        st.plotly_chart(fig, width='stretch', key=f"comp_lat_{time.time()}")
-    
-    with colB:
-        fig2 = go.Figure()
-        
-        if not df_rl.empty:
-            fig2.add_trace(go.Scatter(
-                x=df_rl["episode"], 
-                y=df_rl["replicas"],
-                name="RL Repliche",
-                line=dict(width=3, color="#6366f1"),
-                mode="lines+markers",
-                marker=dict(size=5),
-                hovertemplate='<b>RL - Ep. %{x}</b><br>Repliche: %{y}<extra></extra>'
-            ))
-        
-        if not df_base.empty:
-            fig2.add_trace(go.Scatter(
-                x=df_base["episode"], 
-                y=df_base["replicas"],
-                name="Baseline Repliche",
-                line=dict(width=3, color="#ef4444", dash="dash"),
-                mode="lines+markers",
-                marker=dict(size=5),
-                hovertemplate='<b>Baseline - Ep. %{x}</b><br>Repliche: %{y}<extra></extra>'
-            ))
-        
-        fig2.update_layout(
-            title=dict(text="Confronto Utilizzo Risorse", font=dict(size=18, color="#e5e7eb"), x=0),
-            xaxis=dict(title="Episodio", title_font=dict(size=12, color="#9ca3af"), tickfont=dict(color="#d1d5db", size=10),
-                      rangemode="tozero", gridcolor="rgba(75, 85, 99, 0.2)", showgrid=True, zeroline=False),
-            yaxis=dict(title="Repliche", title_font=dict(size=12, color="#9ca3af"), tickfont=dict(color="#d1d5db", size=10),
-                      gridcolor="rgba(75, 85, 99, 0.2)", showgrid=True, zeroline=False),
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0, font=dict(size=11, color="#d1d5db"),
-                       bgcolor="rgba(17, 24, 39, 0.8)", bordercolor="rgba(75, 85, 99, 0.3)", borderwidth=1),
-            plot_bgcolor="rgba(10, 14, 39, 0.5)",
-            paper_bgcolor="rgba(10, 14, 39, 0)",
-            height=400,
-            margin=dict(l=50, r=30, t=60, b=40),
-            hovermode='x unified'
+    with kpi3:
+        diff_viol = sla_viol_rl - sla_viol_bl
+        st.metric(
+            "Violazioni SLA (Totali)", 
+            f"{sla_viol_rl}", 
+            f"{diff_viol} vs Base",
+            delta_color="inverse" # Verde se ne ha meno
         )
+
+    with kpi4:
+        # Score sintetico (Inventato ma efficace: Efficienza = 1 / (Lat * Rep))
+        eff_rl = 1 / (mean_lat_rl * mean_rep_rl) if mean_lat_rl > 0 else 0
+        eff_bl = 1 / (mean_lat_bl * mean_rep_bl) if mean_lat_bl > 0 else 0
+        delta_eff = ((eff_rl - eff_bl) / eff_bl * 100) if eff_bl > 0 else 0
+        st.metric(
+            "Efficienza Globale", 
+            f"{eff_rl:.2f}", 
+            f"{delta_eff:.1f}%",
+            delta_color="normal" # Verde se sale
+        )
+
+    st.markdown("---")
+
+    # 4. GRAFICI STATISTICI (BOX PLOT) - Molto meglio delle linee per capire chi è stabile
+    st.subheader(" Analisi Distribuzione e Stabilità")
+    st.caption("Il Box Plot mostra la stabilità: una scatola più 'bassa' e 'stretta' indica performance migliori e più costanti.")
+
+    tab_dist, tab_ts = st.tabs([" Distribuzione", " Serie Temporale "])
+
+    with tab_dist:
+        col_box1, col_box2 = st.columns(2)
         
-        st.plotly_chart(fig2, width='stretch', key=f"comp_rep_{time.time()}")
+        with col_box1:
+            # Box Plot Latenza
+            fig_box_lat = go.Figure()
+            if not df_baseline.empty:
+                fig_box_lat.add_trace(go.Box(y=df_baseline["latency"], name="Baseline", marker_color="#ef4444", boxpoints='outliers'))
+            if not df_rl.empty:
+                fig_box_lat.add_trace(go.Box(y=df_rl["latency"], name="RL Agent", marker_color="#6366f1", boxpoints='outliers'))
+            
+            fig_box_lat.add_hline(y=mid_thr, line_dash="dot", line_color="orange", annotation_text="SLA Limit")
+            fig_box_lat.update_layout(title="Distribuzione Latenza (Più basso = Meglio)", plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", font=dict(color="#e5e7eb"))
+            st.plotly_chart(fig_box_lat, width='stretch')
+
+        with col_box2:
+            # Box Plot Repliche
+            fig_box_rep = go.Figure()
+            if not df_baseline.empty:
+                fig_box_rep.add_trace(go.Box(y=df_baseline["replicas"], name="Baseline", marker_color="#ef4444"))
+            if not df_rl.empty:
+                fig_box_rep.add_trace(go.Box(y=df_rl["replicas"], name="RL Agent", marker_color="#6366f1"))
+            
+            fig_box_rep.update_layout(title="Utilizzo Risorse (Più basso = Risparmio)", plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", font=dict(color="#e5e7eb"))
+            st.plotly_chart(fig_box_rep, width='stretch')
+
+    with tab_ts:
+        # 5. SERIE TEMPORALE MIGLIORATA
+        # Usiamo medie mobili per pulire il grafico se richiesto
+        use_smooth = st.checkbox("Applica Smoothing (Media Mobile) per chiarezza", value=True)
+        w_smooth = window if use_smooth else 1
+
+        fig_ts = go.Figure()
+
+        if not df_baseline.empty:
+            y_base = df_baseline["latency"].rolling(window=w_smooth, min_periods=1).mean()
+            fig_ts.add_trace(go.Scatter(
+                x=df_baseline["episode"], y=y_base,
+                name="Baseline", line=dict(color="#ef4444", width=2, dash="dot"),
+                opacity=0.7
+            ))
+
+        if not df_rl.empty:
+            y_rl = df_rl["latency"].rolling(window=w_smooth, min_periods=1).mean()
+            fig_ts.add_trace(go.Scatter(
+                x=df_rl["episode"], y=y_rl,
+                name="RL Agent", line=dict(color="#6366f1", width=3),
+                opacity=1.0
+            ))
+
+        # Aree colorate per le soglie
+        fig_ts.add_hrect(y0=mid_thr, y1=1.0, line_width=0, fillcolor="red", opacity=0.1, annotation_text="Violazione SLA")
+        fig_ts.add_hrect(y0=0, y1=low_thr, line_width=0, fillcolor="green", opacity=0.1, annotation_text="Zona Ottimale")
+
+        fig_ts.update_layout(
+            title="Confronto Temporale Diretto",
+            xaxis_title="Episodio",
+            yaxis_title="Latenza (s)",
+            plot_bgcolor="rgba(17, 24, 39, 0.5)",
+            paper_bgcolor="rgba(0,0,0,0)",
+            font=dict(color="#e5e7eb"),
+            hovermode="x unified"
+        )
+        st.plotly_chart(fig_ts, width='stretch')
+
+    # Stop per evitare che il codice sotto venga eseguito
+    if not pausa:
+        time.sleep(refresh_sec)
+        st.rerun()
+    st.stop()
 
 else:
-    # MODALITÀ SINGOLA (RL o Baseline)
+    # --- MODALITÀ SINGOLA (RL o Baseline) ---
     target_file = RL_LOG if "RL" in data_source else BASE_LOG
     color_main = "#6366f1" if "RL" in data_source else "#ef4444"
     system_name = "RL Agent" if "RL" in data_source else "Baseline"
@@ -583,174 +624,133 @@ else:
     # Applica window per smoothing
     df = df.tail(max_points).reset_index(drop=True)
 
-# ═══════════════════════════════════════════════════════════════════════════
-# ELABORAZIONE DATI
-# ═══════════════════════════════════════════════════════════════════════════
-df["latency_roll"] = df["latency"].rolling(window=window, min_periods=1).mean()
-df["reward_roll"] = df["reward"].rolling(window=window, min_periods=1).mean()
+    # Calcolo metriche
+    df["latency_roll"] = df["latency"].rolling(window=window, min_periods=1).mean()
+    df["reward_roll"] = df["reward"].rolling(window=window, min_periods=1).mean()
 
-last_lat = df["latency"].iloc[-1]
-last_rep = df["replicas"].iloc[-1]
-last_rew = df["reward"].iloc[-1]
+    last_lat = df["latency"].iloc[-1]
+    last_rep = df["replicas"].iloc[-1]
+    last_rew = df["reward"].iloc[-1]
 
-lat_delta = None
-rew_delta = None
-if len(df) > 1:
-    lat_delta = last_lat - df["latency"].iloc[-2]
-    rew_delta = last_rew - df["reward"].iloc[-2]
+    lat_delta = None
+    rew_delta = None
+    if len(df) > 1:
+        lat_delta = last_lat - df["latency"].iloc[-2]
+        rew_delta = last_rew - df["reward"].iloc[-2]
 
-# ═══════════════════════════════════════════════════════════════════════════
-# KPI CARDS
-# ═══════════════════════════════════════════════════════════════════════════
-c1, c2, c3 = st.columns(3)
+    # KPI CARDS
+    c1, c2, c3 = st.columns(3)
 
-with c1:
-    delta_str = f"{lat_delta:.3f} s" if lat_delta is not None else None
-    st.metric(f"{system_name} - Latenza", f"{last_lat:.3f} s", delta=delta_str, delta_color="inverse")
+    with c1:
+        delta_str = f"{lat_delta:.3f} s" if lat_delta is not None else None
+        st.metric(f"{system_name} - Latenza", f"{last_lat:.3f} s", delta=delta_str, delta_color="inverse")
 
-with c2:
-    st.metric(f"{system_name} - Repliche", f"{int(last_rep)}")
+    with c2:
+        st.metric(f"{system_name} - Repliche", f"{int(last_rep)}")
 
-with c3:
-    delta_str = f"{rew_delta:.2f}" if rew_delta is not None else None
-    st.metric(f"{system_name} - Reward", f"{last_rew:.2f}", delta=delta_str)
+    with c3:
+        delta_str = f"{rew_delta:.2f}" if rew_delta is not None else None
+        st.metric(f"{system_name} - Reward", f"{last_rew:.2f}", delta=delta_str)
 
-st.markdown("---")
+    st.markdown("---")
 
-# ═══════════════════════════════════════════════════════════════════════════
-# GRAFICI PRINCIPALI
-# ═══════════════════════════════════════════════════════════════════════════
-colA, colB = st.columns([2, 1])
+    # GRAFICI PRINCIPALI (VISTA SINGOLA)
+    colA, colB = st.columns([2, 1])
 
-with colA:
-    fig = go.Figure()
+    with colA:
+        fig = go.Figure()
+        
+        fig.add_trace(go.Bar(
+            x=df["episode"], 
+            y=df["replicas"],
+            name="Repliche",
+            opacity=0.35,
+            yaxis="y2",
+            marker=dict(color=color_main, line=dict(color=color_main, width=1)),
+            hovertemplate='<b>Ep. %{x}</b><br>Repliche: %{y}<extra></extra>'
+        ))
+        
+        fig.add_trace(go.Scatter(
+            x=df["episode"], 
+            y=df["latency_roll"],
+            mode="lines+markers",
+            name="Latenza",
+            line=dict(width=3, color="#f59e0b"),
+            marker=dict(size=6, color="#fbbf24"),
+            hovertemplate='<b>Ep. %{x}</b><br>Latenza: %{y:.3f}s<extra></extra>'
+        ))
+        
+        fig.add_hline(y=low_thr, line_dash="dash", line_color="#10b981", line_width=2,
+                    annotation_text=f"Target ({low_thr}s)", annotation_position="right")
+        fig.add_hline(y=mid_thr, line_dash="dash", line_color="#ef4444", line_width=2,
+                    annotation_text=f"Critico ({mid_thr}s)", annotation_position="right")
+        
+        fig.update_layout(
+            title=dict(text=f"Performance {system_name}", font=dict(size=18, color="#e5e7eb", family="Inter"), x=0),
+            xaxis=dict(title="Episodio", title_font=dict(size=12, color="#9ca3af"), tickfont=dict(color="#d1d5db", size=10),
+                    rangemode="tozero", gridcolor="rgba(75, 85, 99, 0.2)", showgrid=True, zeroline=False),
+            yaxis=dict(title="Latenza (s)", title_font=dict(size=12, color="#9ca3af"), tickfont=dict(color="#d1d5db", size=10),
+                    rangemode="tozero", gridcolor="rgba(75, 85, 99, 0.2)", showgrid=True, zeroline=False),
+            yaxis2=dict(title="Repliche", title_font=dict(size=12, color="#9ca3af"), tickfont=dict(color="#d1d5db", size=10),
+                    overlaying="y", side="right", range=[0, 5], gridcolor="rgba(75, 85, 99, 0.1)", showgrid=False),
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0, font=dict(size=11, color="#d1d5db"),
+                    bgcolor="rgba(17, 24, 39, 0.8)", bordercolor="rgba(75, 85, 99, 0.3)", borderwidth=1),
+            plot_bgcolor="rgba(10, 14, 39, 0.5)",
+            paper_bgcolor="rgba(10, 14, 39, 0)",
+            height=420,
+            margin=dict(l=50, r=50, t=60, b=40),
+            hovermode='x unified'
+        )
+        st.plotly_chart(fig, width='stretch', key=f"main_{time.time()}")
+
+    with colB:
+        fig_r = go.Figure()
+        
+        fig_r.add_trace(go.Scatter(
+            x=df["episode"], y=df["reward_roll"], mode="lines", name="Reward",
+            line=dict(width=0), fillcolor="rgba(139, 92, 246, 0.15)", fill='tozeroy', showlegend=False
+        ))
+        
+        fig_r.add_trace(go.Scatter(
+            x=df["episode"], y=df["reward_roll"], mode="lines+markers", name="Reward",
+            line=dict(color="#8b5cf6", width=3), marker=dict(size=6, color="#a78bfa"),
+            hovertemplate='<b>Ep. %{x}</b><br>Reward: %{y:.2f}<extra></extra>'
+        ))
+        
+        fig_r.update_layout(
+            title=dict(text= f"{reward_name}", font=dict(size=16, color="#e5e7eb", family="Inter"), x=0),
+            xaxis=dict(title="Episodio", title_font=dict(size=11, color="#9ca3af"), tickfont=dict(color="#d1d5db", size=10),
+                    rangemode="tozero", gridcolor="rgba(75, 85, 99, 0.2)", showgrid=True, zeroline=False),
+            yaxis=dict(title="Score", title_font=dict(size=11, color="#9ca3af"), tickfont=dict(color="#d1d5db", size=10),
+                    gridcolor="rgba(75, 85, 99, 0.2)", showgrid=True, zeroline=False),
+            plot_bgcolor="rgba(10, 14, 39, 0.5)",
+            paper_bgcolor="rgba(10, 14, 39, 0)",
+            height=420,
+            margin=dict(l=50, r=30, t=60, b=40),
+            hovermode='x unified',
+            showlegend=False
+        )
+        st.plotly_chart(fig_r, width='stretch', key=f"reward_{time.time()}")
+
+    # FOOTER CON STATISTICHE (Solo vista singola)
+    st.markdown("---")
+    col1, col2, col3, col4 = st.columns(4)
     
-    # Barre repliche
-    fig.add_trace(go.Bar(
-        x=df["episode"], 
-        y=df["replicas"],
-        name="Repliche",
-        opacity=0.35,
-        yaxis="y2",
-        marker=dict(color=color_main, line=dict(color=color_main, width=1)),
-        hovertemplate='<b>Ep. %{x}</b><br>Repliche: %{y}<extra></extra>'
-    ))
-    
-    # Linea latenza
-    fig.add_trace(go.Scatter(
-        x=df["episode"], 
-        y=df["latency_roll"],
-        mode="lines+markers",
-        name="Latenza",
-        line=dict(width=3, color="#f59e0b"),
-        marker=dict(size=6, color="#fbbf24"),
-        hovertemplate='<b>Ep. %{x}</b><br>Latenza: %{y:.3f}s<extra></extra>'
-    ))
-    
-    # Soglie
-    fig.add_hline(y=low_thr, line_dash="dash", line_color="#10b981", line_width=2,
-                  annotation_text=f"Target ({low_thr}s)", annotation_position="right")
-    fig.add_hline(y=mid_thr, line_dash="dash", line_color="#ef4444", line_width=2,
-                  annotation_text=f"Critico ({mid_thr}s)", annotation_position="right")
-    
-    fig.update_layout(
-        title=dict(text=f"Performance {system_name}", font=dict(size=18, color="#e5e7eb", family="Inter"), x=0),
-        xaxis=dict(title="Episodio", title_font=dict(size=12, color="#9ca3af"), tickfont=dict(color="#d1d5db", size=10),
-                  rangemode="tozero", gridcolor="rgba(75, 85, 99, 0.2)", showgrid=True, zeroline=False),
-        yaxis=dict(title="Latenza (s)", title_font=dict(size=12, color="#9ca3af"), tickfont=dict(color="#d1d5db", size=10),
-                  rangemode="tozero", gridcolor="rgba(75, 85, 99, 0.2)", showgrid=True, zeroline=False),
-        yaxis2=dict(title="Repliche", title_font=dict(size=12, color="#9ca3af"), tickfont=dict(color="#d1d5db", size=10),
-                   overlaying="y", side="right", range=[0, 5], gridcolor="rgba(75, 85, 99, 0.1)", showgrid=False),
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0, font=dict(size=11, color="#d1d5db"),
-                   bgcolor="rgba(17, 24, 39, 0.8)", bordercolor="rgba(75, 85, 99, 0.3)", borderwidth=1),
-        plot_bgcolor="rgba(10, 14, 39, 0.5)",
-        paper_bgcolor="rgba(10, 14, 39, 0)",
-        height=420,
-        margin=dict(l=50, r=50, t=60, b=40),
-        hovermode='x unified'
-    )
-    
-    st.plotly_chart(fig, width='stretch', key=f"main_{time.time()}")
+    avg_lat = df["latency"].mean()
+    avg_rep = df["replicas"].mean()
+    total_episodes = len(df)
+    cumulative_reward = df["reward"].sum()
 
-with colB:
-    fig_r = go.Figure()
-    
-    # Area sotto la curva
-    fig_r.add_trace(go.Scatter(
-        x=df["episode"], y=df["reward_roll"], mode="lines", name="Reward",
-        line=dict(width=0), fillcolor="rgba(139, 92, 246, 0.15)", fill='tozeroy', showlegend=False
-    ))
-    
-    # Linea reward
-    fig_r.add_trace(go.Scatter(
-        x=df["episode"], y=df["reward_roll"], mode="lines+markers", name="Reward",
-        line=dict(color="#8b5cf6", width=3), marker=dict(size=6, color="#a78bfa"),
-        hovertemplate='<b>Ep. %{x}</b><br>Reward: %{y:.2f}<extra></extra>'
-    ))
-    
-    fig_r.update_layout(
-        title=dict(text= f"{reward_name}", font=dict(size=16, color="#e5e7eb", family="Inter"), x=0),
-        xaxis=dict(title="Episodio", title_font=dict(size=11, color="#9ca3af"), tickfont=dict(color="#d1d5db", size=10),
-                  rangemode="tozero", gridcolor="rgba(75, 85, 99, 0.2)", showgrid=True, zeroline=False),
-        yaxis=dict(title="Score", title_font=dict(size=11, color="#9ca3af"), tickfont=dict(color="#d1d5db", size=10),
-                  gridcolor="rgba(75, 85, 99, 0.2)", showgrid=True, zeroline=False),
-        plot_bgcolor="rgba(10, 14, 39, 0.5)",
-        paper_bgcolor="rgba(10, 14, 39, 0)",
-        height=420,
-        margin=dict(l=50, r=30, t=60, b=40),
-        hovermode='x unified',
-        showlegend=False
-    )
-    
-    st.plotly_chart(fig_r, width='stretch', key=f"reward_{time.time()}")
+    with col1:
+        st.markdown(f"<div class='stat-card'><p class='stat-label'>Latenza Media</p><p class='stat-value'>{avg_lat:.3f}s</p></div>", unsafe_allow_html=True)
+    with col2:
+        st.markdown(f"<div class='stat-card'><p class='stat-label'>Repliche Medie</p><p class='stat-value'>{avg_rep:.1f}</p></div>", unsafe_allow_html=True)
+    with col3:
+        st.markdown(f"<div class='stat-card'><p class='stat-label'>Episodi Totali</p><p class='stat-value'>{total_episodes}</p></div>", unsafe_allow_html=True)
+    with col4:
+        st.markdown(f"<div class='stat-card'><p class='stat-label'>Reward Cumulativo</p><p class='stat-value'>{cumulative_reward:.1f}</p></div>", unsafe_allow_html=True)
 
-# ═══════════════════════════════════════════════════════════════════════════
-# FOOTER CON STATISTICHE
-# ═══════════════════════════════════════════════════════════════════════════
-st.markdown("---")
-
-col1, col2, col3, col4 = st.columns(4)
-
-avg_lat = df["latency"].mean()
-avg_rep = df["replicas"].mean()
-total_episodes = len(df)
-cumulative_reward = df["reward"].sum()
-
-with col1:
-    st.markdown(f"""
-    <div class='stat-card'>
-        <p class='stat-label'>Latenza Media</p>
-        <p class='stat-value'>{avg_lat:.3f}s</p>
-    </div>
-    """, unsafe_allow_html=True)
-
-with col2:
-    st.markdown(f"""
-    <div class='stat-card'>
-        <p class='stat-label'>Repliche Medie</p>
-        <p class='stat-value'>{avg_rep:.1f}</p>
-    </div>
-    """, unsafe_allow_html=True)
-
-with col3:
-    st.markdown(f"""
-    <div class='stat-card'>
-        <p class='stat-label'>Episodi Totali</p>
-        <p class='stat-value'>{total_episodes}</p>
-    </div>
-    """, unsafe_allow_html=True)
-
-with col4:
-    st.markdown(f"""
-    <div class='stat-card'>
-        <p class='stat-label'>Reward Cumulativo</p>
-        <p class='stat-value'>{cumulative_reward:.1f}</p>
-    </div>
-    """, unsafe_allow_html=True)
-
-# ═══════════════════════════════════════════════════════════════════════════
-# AUTO-REFRESH (solo se non in pausa)
-# ═══════════════════════════════════════════════════════════════════════════
+# AUTO-REFRESH GENERALE (se non fermato prima)
 if not pausa:
     time.sleep(refresh_sec)
     st.rerun()
