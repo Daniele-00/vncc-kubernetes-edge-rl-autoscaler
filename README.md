@@ -54,26 +54,77 @@ L’agente apprende autonomamente come scalare le risorse (Pod) per mantenere ba
 Il sistema è un loop di controllo chiuso (MAPE Loop: *Monitor, Analyze, Plan, Execute*).
 
 ```mermaid
-flowchart LR
-    %% Generatore Traffico
-    LG[("Load Generator")] -- "HTTP Requests" --> SVC("Service NodePort")
-
-    %% Cluster K8s
-    subgraph K8s [Kubernetes Cluster]
-        SVC --> POD1["App Pod"]
-        SVC --> POD2["App Pod"]
-        DEP["Deployment edge-app"] -.-> POD1 & POD2
+flowchart TB
+    subgraph External["🌐 External Traffic"]
+        USER[("👤 User/Client")]
     end
-
-    %% Autoscaler Logic
-    POD1 -->|"Metrics (Latency)"| RL["🧠 RL Autoscaler"]
-    RL -->|"Action (Scale UP/DOWN)"| DEP
-
-    %% Monitoring
-    RL -->|Writes| LOG[("CSV Logs")]
-    LOG --> DASH["📊 Streamlit Dashboard"]
-    DASH -- "Config (SLA)" --> RL
+    
+    subgraph LoadGen["⚡ Load Generator"]
+        LG["Load Controller(Python Multi-Thread)"]
+        W1["Worker 1"]
+        W2["Worker 2"]
+        W3["Worker ..."]
+        W15["Worker 15"]
+        
+        LG -->|Controlla frequenza| W1 & W2 & W3 & W15
+    end
+    
+    subgraph K8s["☸️ Kubernetes Cluster (Minikube)"]
+        subgraph Network["🔀 Networking Layer"]
+            SVC["Serviceedge-app-service(NodePort 30080)"]
+        end
+        
+        subgraph Workload["📦 Application Layer"]
+            POD1["Pod 1Flask App(200ms delay)"]
+            POD2["Pod 2Flask App(200ms delay)"]
+            POD3["Pod NFlask App(200ms delay)"]
+        end
+        
+        subgraph Control["🎛️ Control Plane"]
+            DEP["Deploymentedge-app(1-5 replicas)"]
+            API["Kubernetes APIServer"]
+        end
+        
+        SVC -->|Load Balancing| POD1 & POD2 & POD3
+        DEP -.->|Gestisce| POD1 & POD2 & POD3
+        API -->|CRUD Pods| DEP
+    end
+    
+    subgraph Autoscaler["🤖 Autoscaling Layer"]
+        RL["RL Autoscaler(Q-Learning)---• Osserva: Latency, Replicas• Decide: Azione [-1,0,+1]• Apprende: Q-Table Update"]
+        BASE["Baseline Autoscaler(Rule-Based)---• IF lat > HIGH: +1• IF lat < LOW: -1"]
+    end
+    
+    subgraph Monitor["📈 Monitoring & Control"]
+        DASH["Streamlit Dashboard---• Real-time Metrics• SLA Configuration• Traffic Scenarios• RL vs Baseline Comparison"]
+        LOG[("CSV Logsrl_log.csvbaseline_log.csv")]
+        CONFIG[("Config Filesautoscaler_config.jsoncurrent_scenario.txt")]
+    end
+    
+    USER -->|HTTP Requests| W1 & W2 & W3 & W15
+    W1 & W2 & W3 & W15 -->|"http://MINIKUBE_IP:30080"| SVC
+    
+    POD1 & POD2 & POD3 -->|"Metriche(Latency)"| RL & BASE
+    RL & BASE -->|"kubectl scale--replicas=N"| API
+    
+    RL & BASE -->|Scrive metriche| LOG
+    LOG -->|Legge dati| DASH
+    DASH -->|Aggiorna config| CONFIG
+    CONFIG -.->|Hot-reload| RL & BASE & LG
+    
+    classDef userClass fill:#e1f5ff,stroke:#0288d1,stroke-width:2px
+    classDef loadClass fill:#fff9c4,stroke:#f57f17,stroke-width:2px
+    classDef k8sClass fill:#e8f5e9,stroke:#388e3c,stroke-width:2px
+    classDef autoClass fill:#fce4ec,stroke:#c2185b,stroke-width:2px
+    classDef monitorClass fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    
+    class USER userClass
+    class LG,W1,W2,W3,W15 loadClass
+    class SVC,POD1,POD2,POD3,DEP,API k8sClass
+    class RL,BASE autoClass
+    class DASH,LOG,CONFIG monitorClass
 ```
+
 ---
 
 ## 📁 Struttura del Progetto
