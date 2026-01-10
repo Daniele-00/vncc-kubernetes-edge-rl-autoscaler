@@ -31,7 +31,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Export logo path for use elsewhere in the app (optional)
+# Export logo path for use elsewhere in the app
 LOGO_PATH = logo_path
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -65,7 +65,7 @@ st.markdown("""
         font-weight: 600 !important;
     }
     
-    /* Titolo elegante senza effetti esagerati */
+    /* Titolo */
     h1 {
         color: #f9fafb !important;
         font-weight: 700 !important;
@@ -84,7 +84,7 @@ st.markdown("""
         font-weight: 500;
     }
     
-    /* Metric Cards - design pulito con bordi sottili */
+    /* Metric Cards */
     [data-testid="stMetric"] {
         background: rgba(17, 24, 39, 0.7);
         padding: 1.5rem;
@@ -113,7 +113,7 @@ st.markdown("""
         font-weight: 700 !important;
     }
     
-    /* Buttons - design solido professionale */
+    /* Buttons */
     .stButton button {
         background: #4f46e5 !important;
         color: white !important;
@@ -273,7 +273,7 @@ st.markdown("""
 .header-wrap{
   display:flex;
   align-items:center;
-  justify-content:center;   /* <-- titolo+logo centrati */
+  justify-content:center;
   gap:14px;
   margin-top: 6px;
   margin-bottom: 2px;
@@ -332,7 +332,7 @@ st.sidebar.markdown("---")
 # ═══════════════════════════════════════════════════════════════════════════
 # SIDEBAR: CONFIGURAZIONE
 # ═══════════════════════════════════════════════════════════════════════════
-st.sidebar.markdown("### ⚙️ Configurazione Autoscaler")
+st.sidebar.markdown("### Configurazione Autoscaler")
 st.sidebar.markdown("#### Soglie SLA")
 
 # Carica configurazione esistente
@@ -354,7 +354,7 @@ low_thr = st.sidebar.number_input(
     value=default_low, 
     step=0.01, 
     format="%.3f",
-    help="Modifica questo valore per rendere l'AI più o meno esigente."
+    help="Se la latenza è inferiore a questo valore, l'autoscaler cercherà di scalare DOWN."
 )
 
 mid_thr = st.sidebar.number_input(
@@ -362,7 +362,7 @@ mid_thr = st.sidebar.number_input(
     value=default_mid, 
     step=0.01, 
     format="%.3f",
-    help="Se la latenza supera questo valore, l'AI cercherà di scalare UP."
+    help="Se la latenza supera questo valore, l'autoscaler cercherà di scalare UP."
 )
 
 # Salva configurazione
@@ -372,8 +372,9 @@ with open(CONFIG_FILE, "w") as f:
 
 st.sidebar.success(f"Configurato: {low_thr}s / {mid_thr}s")
 
+
 st.sidebar.markdown("---")
-st.sidebar.markdown("#### Dashboard Settings")
+st.sidebar.markdown("#### Impostazioni Dashboard")
 
 refresh_sec = st.sidebar.slider("Refresh Rate (s)", 1, 10, 2, help="Intervallo di aggiornamento automatico della dashboard")
 window = st.sidebar.slider("Smoothing Window", 1, 10, 1, help="Finestra di smoothing per le metriche visualizzate")
@@ -388,11 +389,11 @@ st.sidebar.markdown("### Generatore Traffico")
 
 modo_scelto = st.sidebar.radio(
     "Load Scenario:",
-    ("Calma", "Spike", "Onda", "Stop"),
+    ("Calma", "Picco", "Onda", "Stop"),
     help="Seleziona il pattern di traffico da simulare"
 )
 
-if st.sidebar.button("Apply Scenario", width='stretch'):
+if st.sidebar.button("Applica Scenario", width='stretch'):
     with open(CMD_FILE, "w") as f:
         f.write(modo_scelto)
     st.sidebar.success(f"Attivato: {modo_scelto}")
@@ -405,7 +406,7 @@ if os.path.exists(CMD_FILE):
 
 mode_emoji = {
     "Calma": "🟢",
-    "Spike": "🔴",
+    "Picco": "🔴",
     "Onda": "🟡",
     "Stop": "⚫",
     "Sconosciuto": "⚪"
@@ -413,7 +414,7 @@ mode_emoji = {
 
 st.sidebar.markdown(f"""
 <div class='status-card'>
-    <p class='status-title'>Current Status</p>
+    <p class='status-title'>Stato Corrente</p>
     <p class='status-value'>{mode_emoji.get(current_mode, '⚪')} {current_mode}</p>
 </div>
 """, unsafe_allow_html=True)
@@ -423,7 +424,7 @@ st.sidebar.markdown("---")
 # ═══════════════════════════════════════════════════════════════════════════
 # SIDEBAR: CONTROLLO PAUSA
 # ═══════════════════════════════════════════════════════════════════════════
-st.sidebar.markdown("### ⏸️ Controllo Refresh")
+st.sidebar.markdown("### ⏸️ Controllo Refresh Dashboard")
 pausa = st.sidebar.checkbox("Pausa Dashboard", value=False, help="Metti in pausa per analizzare i grafici senza refresh")
 
 if pausa:
@@ -463,10 +464,8 @@ if data_source == " Confronto Diretto":
     if df_rl.empty and df_baseline.empty:
         st.warning("⚠️ Nessun dato disponibile. Avvia i test per generare i CSV.")
         st.stop()
-
-    # Uniformare la lunghezza per le statistiche (opzionale, ma utile per confronti diretti)
+        
     # Qui calcoliamo le medie su tutto il dataset disponibile
-    
     st.markdown("### Analisi Statistiche")
 
     # 2. CALCOLO KPI MATEMATICI
@@ -528,9 +527,9 @@ if data_source == " Confronto Diretto":
 
     st.markdown("---")
 
-    # 4. GRAFICI STATISTICI (BOX PLOT) - Molto meglio delle linee per capire chi è stabile
+    # 4. GRAFICI STATISTICI (BOX PLOT)
     st.subheader(" Analisi Distribuzione e Stabilità")
-    st.caption("Il Box Plot mostra la stabilità: una scatola più 'bassa' e 'stretta' indica performance migliori e più costanti.")
+    st.caption("Box Plot delle metriche chiave per valutare la stabilità e l'affidabilità di ciascun autoscaler.")
 
     tab_dist, tab_ts = st.tabs([" Distribuzione", " Serie Temporale "])
 
@@ -546,7 +545,7 @@ if data_source == " Confronto Diretto":
                 fig_box_lat.add_trace(go.Box(y=df_rl["latency"], name="RL Agent", marker_color="#6366f1", boxpoints='outliers'))
             
             fig_box_lat.add_hline(y=mid_thr, line_dash="dot", line_color="orange", annotation_text="SLA Limit")
-            fig_box_lat.update_layout(title="Distribuzione Latenza (Più basso = Meglio)", plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", font=dict(color="#e5e7eb"))
+            fig_box_lat.update_layout(title="Distribuzione Latenza", plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", font=dict(color="#e5e7eb"))
             st.plotly_chart(fig_box_lat, width='stretch')
 
         with col_box2:
@@ -557,13 +556,13 @@ if data_source == " Confronto Diretto":
             if not df_rl.empty:
                 fig_box_rep.add_trace(go.Box(y=df_rl["replicas"], name="RL Agent", marker_color="#6366f1"))
             
-            fig_box_rep.update_layout(title="Utilizzo Risorse (Più basso = Risparmio)", plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", font=dict(color="#e5e7eb"))
+            fig_box_rep.update_layout(title="Utilizzo Risorse", plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", font=dict(color="#e5e7eb"))
             st.plotly_chart(fig_box_rep, width='stretch')
 
     with tab_ts:
         # 5. SERIE TEMPORALE MIGLIORATA
-        # Usiamo medie mobili per pulire il grafico se richiesto
-        use_smooth = st.checkbox("Applica Smoothing (Media Mobile) per chiarezza", value=True)
+        # Grafico Lineare con aree colorate per soglie
+        use_smooth = st.checkbox("Applica Smoothing", value=True)
         w_smooth = window if use_smooth else 1
 
         fig_ts = go.Figure()
@@ -687,6 +686,7 @@ else:
         
         fig.update_layout(
             title=dict(text=f"Performance {system_name}", font=dict(size=18, color="#e5e7eb", family="Inter"), x=0),
+            
             xaxis=dict(title="Episodio", title_font=dict(size=12, color="#9ca3af"), tickfont=dict(color="#d1d5db", size=10),
                     rangemode="tozero", gridcolor="rgba(75, 85, 99, 0.2)", showgrid=True, zeroline=False),
             yaxis=dict(title="Latenza (s)", title_font=dict(size=12, color="#9ca3af"), tickfont=dict(color="#d1d5db", size=10),
