@@ -54,75 +54,87 @@ L’agente apprende autonomamente come scalare le risorse (Pod) per mantenere ba
 Il sistema è un loop di controllo chiuso (MAPE Loop: *Monitor, Analyze, Plan, Execute*).
 
 ```mermaid
-flowchart TB
-    subgraph External["🌐 External Traffic"]
-        USER[("👤 User/Client")]
+flowchart LR
+    linkStyle default stroke:#333,stroke-width:1px,fill:none;
+
+    %% --- 1. SORGENTE TRAFFICO ---
+    subgraph External ["🌐 External World"]
+        direction TB
+        USER("👤 User/Client")
     end
-    
-    subgraph LoadGen["⚡ Load Generator"]
-        LG["Load Controller(Python Multi-Thread)"]
-        W1["Worker 1"]
-        W2["Worker 2"]
-        W3["Worker ..."]
-        W15["Worker 15"]
+
+    %% --- 2. GENERAZIONE CARICO ---
+    subgraph LoadGen ["⚡ Load Generator Layer"]
+        direction TB
+        LG["Load Controller<br/>(Multi-Thread Logic)"]
+        Workers["⚠️ 15x Concurrent Workers<br/>(HTTP Requests)"]
         
-        LG -->|Controlla frequenza| W1 & W2 & W3 & W15
+        LG -->|Configura freq.| Workers
     end
-    
-    subgraph K8s["☸️ Kubernetes Cluster (Minikube)"]
-        subgraph Network["🔀 Networking Layer"]
-            SVC["Serviceedge-app-service(NodePort 30080)"]
+
+    %% --- 3. CLUSTER KUBERNETES ---
+    subgraph K8s ["☸️ Kubernetes Cluster (Minikube)"]
+        direction TB
+        
+        subgraph NetLayer ["🔀 Networking"]
+            SVC["Service: edge-app<br/>(NodePort 30080)"]
         end
         
-        subgraph Workload["📦 Application Layer"]
-            POD1["Pod 1Flask App(200ms delay)"]
-            POD2["Pod 2Flask App(200ms delay)"]
-            POD3["Pod NFlask App(200ms delay)"]
+        subgraph AppLayer ["📦 Workload"]
+            PODS["Pods: edge-app<br/>(Flask, 1-5 Replicas)"]
         end
         
-        subgraph Control["🎛️ Control Plane"]
-            DEP["Deploymentedge-app(1-5 replicas)"]
-            API["Kubernetes APIServer"]
+        subgraph K8sControl ["🎛️ Control Plane"]
+            API["K8s API Server"]
+            DEP["Deployment Controller"]
+        end
+
+        SVC -->|Load Balancing| PODS
+        DEP -.->|Reconcile State| PODS
+        API -->|Scale Command| DEP
+    end
+
+    %% --- 4. INTELLIGENZA & CONTROLLO ---
+    subgraph Brain ["🧠 Autoscaling & Logic Layer"]
+        direction TB
+        
+        subgraph Algorithms ["Decision Makers"]
+            RL["🔷 RL Agent<br/>(Q-Learning)"]
+            BASE["🔶 Baseline<br/>(Thresholds)"]
         end
         
-        SVC -->|Load Balancing| POD1 & POD2 & POD3
-        DEP -.->|Gestisce| POD1 & POD2 & POD3
-        API -->|CRUD Pods| DEP
+        subgraph MonitorSystem ["📈 Visualization & Config"]
+            DASH["Streamlit Dashboard"]
+            DB[("CSV Logs & Config")]
+        end
     end
+
+    %% --- CONNESSIONI PRINCIPALI ---
     
-    subgraph Autoscaler["🤖 Autoscaling Layer"]
-        RL["RL Autoscaler(Q-Learning)---• Osserva: Latency, Replicas• Decide: Azione [-1,0,+1]• Apprende: Q-Table Update"]
-        BASE["Baseline Autoscaler(Rule-Based)---• IF lat > HIGH: +1• IF lat < LOW: -1"]
-    end
+    %% Flusso Traffico
+    USER ==>|Start| LG
+    Workers ==>|HTTP Traffic| SVC
+
+    %% Flusso Metriche (Monitoraggio)
+    PODS -.->|Latency Metrics| RL & BASE
     
-    subgraph Monitor["📈 Monitoring & Control"]
-        DASH["Streamlit Dashboard---• Real-time Metrics• SLA Configuration• Traffic Scenarios• RL vs Baseline Comparison"]
-        LOG[("CSV Logsrl_log.csvbaseline_log.csv")]
-        CONFIG[("Config Filesautoscaler_config.jsoncurrent_scenario.txt")]
-    end
-    
-    USER -->|HTTP Requests| W1 & W2 & W3 & W15
-    W1 & W2 & W3 & W15 -->|"http://MINIKUBE_IP:30080"| SVC
-    
-    POD1 & POD2 & POD3 -->|"Metriche(Latency)"| RL & BASE
-    RL & BASE -->|"kubectl scale--replicas=N"| API
-    
-    RL & BASE -->|Scrive metriche| LOG
-    LOG -->|Legge dati| DASH
-    DASH -->|Aggiorna config| CONFIG
-    CONFIG -.->|Hot-reload| RL & BASE & LG
-    
-    classDef userClass fill:#e1f5ff,stroke:#0288d1,stroke-width:2px
-    classDef loadClass fill:#fff9c4,stroke:#f57f17,stroke-width:2px
-    classDef k8sClass fill:#e8f5e9,stroke:#388e3c,stroke-width:2px
-    classDef autoClass fill:#fce4ec,stroke:#c2185b,stroke-width:2px
-    classDef monitorClass fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
-    
-    class USER userClass
-    class LG,W1,W2,W3,W15 loadClass
-    class SVC,POD1,POD2,POD3,DEP,API k8sClass
-    class RL,BASE autoClass
-    class DASH,LOG,CONFIG monitorClass
+    %% Flusso Azioni (Scaling)
+    RL & BASE -->|Action: Scale +/-1| API
+
+    %% Flusso Dati (Logging)
+    RL & BASE -- Write --> DB
+    DB -- Read --> DASH
+    DASH -.->|Update Config| RL & BASE & LG
+
+    %% --- STILI ---
+    classDef plain fill:#fff,stroke:#333,stroke-width:1px;
+    classDef highlight fill:#e1f5fe,stroke:#01579b,stroke-width:2px;
+    classDef k8s fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
+    classDef logic fill:#fff3e0,stroke:#ef6c00,stroke-width:2px;
+
+    class USER,Workers,LG plain
+    class SVC,PODS,API,DEP k8s
+    class RL,BASE,DASH,DB logic
 ```
 
 ---
