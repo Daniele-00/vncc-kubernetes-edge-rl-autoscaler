@@ -55,86 +55,74 @@ Il sistema è un loop di controllo chiuso (MAPE Loop: *Monitor, Analyze, Plan, E
 
 ```mermaid
 flowchart LR
-    linkStyle default stroke:#333,stroke-width:1px,fill:none;
+    %% --- STILI GLOBALI (Colori professionali pastello) ---
+    classDef cluster style=fill:#f9f9f9,stroke:#333,stroke-width:1px;
+    classDef comp fill:#fff,stroke:#333,stroke-width:1px,rx:5,ry:5;
+    classDef k8s fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,rx:5,ry:5;
+    classDef logic fill:#fff3e0,stroke:#ef6c00,stroke-width:2px,rx:5,ry:5;
+    classDef data fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,shape:cylinder;
 
-    %% --- 1. SORGENTE TRAFFICO ---
-    subgraph External ["🌐 External World"]
+    %% --- 1. GENERATORE DI CARICO ---
+    subgraph LoadGen ["Load Generator"]
         direction TB
-        USER("👤 User/Client")
+        LG["Load Controller<br/>(Python)"]
+        Workers["HTTP Traffic<br/>(Concurrent Workers)"]
+        LG --> Workers
     end
 
-    %% --- 2. GENERAZIONE CARICO ---
-    subgraph LoadGen ["⚡ Load Generator Layer"]
+    %% --- 2. CLUSTER KUBERNETES ---
+    subgraph K8s ["Kubernetes Cluster (Minikube)"]
         direction TB
-        LG["Load Controller<br/>(Multi-Thread Logic)"]
-        Workers["⚠️ 15x Concurrent Workers<br/>(HTTP Requests)"]
+        SVC("Service<br/>(NodePort)")
         
-        LG -->|Configura freq.| Workers
+        subgraph Workload ["Application Layer"]
+            PODS["Edge-App Pods<br/>(Flask, 1-5 Replicas)"]
+        end
+        
+        API["K8s API Server"]
+        
+        SVC ==>|Bilanciamento| PODS
+        API -.->|Scaling| PODS
     end
 
-    %% --- 3. CLUSTER KUBERNETES ---
-    subgraph K8s ["☸️ Kubernetes Cluster (Minikube)"]
+    %% --- 3. AUTOSCALER (CERVELLO) ---
+    subgraph Control ["Autoscaling System"]
         direction TB
-        
-        subgraph NetLayer ["🔀 Networking"]
-            SVC["Service: edge-app<br/>(NodePort 30080)"]
-        end
-        
-        subgraph AppLayer ["📦 Workload"]
-            PODS["Pods: edge-app<br/>(Flask, 1-5 Replicas)"]
-        end
-        
-        subgraph K8sControl ["🎛️ Control Plane"]
-            API["K8s API Server"]
-            DEP["Deployment Controller"]
-        end
-
-        SVC -->|Load Balancing| PODS
-        DEP -.->|Reconcile State| PODS
-        API -->|Scale Command| DEP
+        DECIDER{"Decision Logic<br/>(RL o Baseline)"}
+        QTABLE[("Q-Table<br/>(Knowledge)")]
     end
 
-    %% --- 4. INTELLIGENZA & CONTROLLO ---
-    subgraph Brain ["🧠 Autoscaling & Logic Layer"]
+    %% --- 4. MONITORAGGIO ---
+    subgraph Monitor ["Monitoring"]
         direction TB
-        
-        subgraph Algorithms ["Decision Makers"]
-            RL["🔷 RL Agent<br/>(Q-Learning)"]
-            BASE["🔶 Baseline<br/>(Thresholds)"]
-        end
-        
-        subgraph MonitorSystem ["📈 Visualization & Config"]
-            DASH["Streamlit Dashboard"]
-            DB[("CSV Logs & Config")]
-        end
+        LOGS[("CSV Logs")]
+        DASH["Streamlit<br/>Dashboard"]
     end
 
-    %% --- CONNESSIONI PRINCIPALI ---
+    %% --- CONNESSIONI DEL LOOP DI CONTROLLO ---
     
-    %% Flusso Traffico
-    USER ==>|Start| LG
-    Workers ==>|HTTP Traffic| SVC
+    %% 1. Traffico entra
+    Workers ==>|Richieste| SVC
 
-    %% Flusso Metriche (Monitoraggio)
-    PODS -.->|Latency Metrics| RL & BASE
+    %% 2. Monitoraggio (Feedback)
+    PODS -.->|1. Misura Latenza| DECIDER
+
+    %% 3. Logica (Decisione)
+    DECIDER <-->|Read/Update| QTABLE
     
-    %% Flusso Azioni (Scaling)
-    RL & BASE -->|Action: Scale +/-1| API
+    %% 4. Azione (Scaling)
+    DECIDER ==>|2. Calcola Azione| API
 
-    %% Flusso Dati (Logging)
-    RL & BASE -- Write --> DB
-    DB -- Read --> DASH
-    DASH -.->|Update Config| RL & BASE & LG
+    %% 5. Dati (Logging)
+    DECIDER -.->|3. Scrive| LOGS
+    LOGS -.-> DASH
 
-    %% --- STILI ---
-    classDef plain fill:#fff,stroke:#333,stroke-width:1px;
-    classDef highlight fill:#e1f5fe,stroke:#01579b,stroke-width:2px;
-    classDef k8s fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
-    classDef logic fill:#fff3e0,stroke:#ef6c00,stroke-width:2px;
-
-    class USER,Workers,LG plain
-    class SVC,PODS,API,DEP k8s
-    class RL,BASE,DASH,DB logic
+    %% --- APPLICAZIONE STILI ---
+    class LG,Workers comp
+    class SVC,PODS,API k8s
+    class DECIDER logic
+    class LOGS,QTABLE data
+    class DASH comp
 ```
 
 ---
