@@ -8,7 +8,8 @@
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
 > **Corso:** Virtual Networks and Cloud Computing (A.A. 2024/2025)  
-> **Autore:** Daniele Nanni Cirulli 
+> **Autore:** Daniele Nanni Cirulli
+> 
 > **Università degli Studi di Perugia** - Dipartimento di Ingegneria
 
 ---
