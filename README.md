@@ -593,18 +593,18 @@ python plots/plot_compare.py
 ### Interpretazione Risultati
 
 #### Metriche di Successo RL:
-✅ **Reward cumulativo superiore** (obiettivo primario)  
-✅ **Minori violazioni SLA** (qualità servizio)  
-✅ **Varianza repliche ridotta** (stabilità)  
+**Reward cumulativo superiore** (obiettivo primario)  
+**Minori violazioni SLA** (qualità servizio)  
+**Varianza repliche ridotta** (stabilità)  
 
 #### Trade-off Accettabili:
 ⚠️ **Costo medio leggermente superiore** (+20-30%)  
 → Giustificato da policy conservativa "Quality Assurance"
 
 #### Red Flags:
-❌ Reward inferiore alla baseline → Training insufficiente  
-❌ Flapping peggiore della baseline → Bug nella policy  
-❌ Violazioni SLA elevate → Soglie mal configurate  
+Reward inferiore alla baseline → Training insufficiente  
+Flapping peggiore della baseline → Bug nella policy  
+Violazioni SLA elevate → Soglie mal configurate  
 
 ---
 
@@ -854,8 +854,6 @@ pytest --cov=autoscaler tests/
 ---
 
 ## 📧 Contatti
-
-**Daniele Nanni Cirulli**
 
 - 📧 Email: [danielenannicirulli00@gmail.com](mailto:danielenannicirulli00@gmail.com)
 - 🔗 LinkedIn: [linkedin.com/in/daniele-nanni-cirulli](https://www.linkedin.com/in/daniele-nanni-cirulli-6052b2231/)
