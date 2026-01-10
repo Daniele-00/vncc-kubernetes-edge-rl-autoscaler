@@ -9,7 +9,7 @@
 
 > **Corso:** Virtual Networks and Cloud Computing (A.A. 2024/2025)  
 > **Autore:** Daniele Nanni Cirulli
-> 
+
 > **Università degli Studi di Perugia** - Dipartimento di Ingegneria
 
 ---
@@ -860,11 +860,6 @@ pytest --cov=autoscaler tests/
 - 📧 Email: [danielenannicirulli00@gmail.com](mailto:danielenannicirulli00@gmail.com)
 - 🔗 LinkedIn: [linkedin.com/in/daniele-nanni-cirulli](https://www.linkedin.com/in/daniele-nanni-cirulli-6052b2231/)
 - 🐙 GitHub: [@Daniele-00](https://github.com/Daniele-00)
-
-**Università degli Studi di Perugia**  
-Dipartimento di Ingegneria  
-Corso: Virtual Networks and Cloud Computing  
-A.A. 2024/2025
 
 ---
 
