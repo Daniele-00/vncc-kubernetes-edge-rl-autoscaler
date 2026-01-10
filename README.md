@@ -55,7 +55,6 @@ Il sistema è un loop di controllo chiuso (MAPE Loop: *Monitor, Analyze, Plan, E
 
 ```mermaid
 flowchart LR
-    %% --- STILI GLOBALI (Colori professionali pastello) ---
     classDef cluster style=fill:#f9f9f9,stroke:#333,stroke-width:1px;
     classDef comp fill:#fff,stroke:#333,stroke-width:1px,rx:5,ry:5;
     classDef k8s fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,rx:5,ry:5;
