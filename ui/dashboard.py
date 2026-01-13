@@ -254,7 +254,7 @@ st.markdown("""
 # PERCORSI FILE
 # ═══════════════════════════════════════════════════════════════════════════
 RESULTS = "results"
-RL_LOG = os.path.join(RESULTS, "rl_log.csv")
+RL_LOG = os.path.join(RESULTS, "rl_eval_log2.csv")
 BASE_LOG = os.path.join(RESULTS, "baseline_log.csv")
 CMD_FILE = "current_scenario.txt"
 CONFIG_FILE = "autoscaler_config.json"
@@ -320,7 +320,7 @@ else:
 # ═══════════════════════════════════════════════════════════════════════════
 # SIDEBAR: SELEZIONE MODALITÀ
 # ═══════════════════════════════════════════════════════════════════════════
-st.sidebar.markdown("### 📂 Sorgente Dati")
+st.sidebar.markdown("### Sorgente Dati")
 data_source = st.sidebar.radio(
     "Visualizzazione:",
     ("RL AUTOSCALER", " Baseline AUTOSCALER ", " Confronto Diretto"),
@@ -336,15 +336,15 @@ st.sidebar.markdown("### Configurazione Autoscaler")
 st.sidebar.markdown("#### Soglie SLA")
 
 # Carica configurazione esistente
-default_low = 0.08
-default_mid = 0.20
+default_low = 0.25
+default_mid = 0.35
 
 if os.path.exists(CONFIG_FILE):
     try:
         with open(CONFIG_FILE, "r") as f:
             saved_conf = json.load(f)
-            default_low = saved_conf.get("low", 0.08)
-            default_mid = saved_conf.get("high", 0.20)
+            default_low = saved_conf.get("low", 0.25)
+            default_mid = saved_conf.get("high", 0.35)
     except:
         pass
 
@@ -378,7 +378,7 @@ st.sidebar.markdown("#### Impostazioni Dashboard")
 
 refresh_sec = st.sidebar.slider("Refresh Rate (s)", 1, 10, 2, help="Intervallo di aggiornamento automatico della dashboard")
 window = st.sidebar.slider("Smoothing Window", 1, 10, 1, help="Finestra di smoothing per le metriche visualizzate")
-max_points = st.sidebar.slider("Max Episodes", 20, 200, 50, help="Numero massimo di episodi da visualizzare nei grafici")
+max_points = st.sidebar.slider("Max Episodes", 20, 250, 150, help="Numero massimo di episodi da visualizzare nei grafici")
 
 st.sidebar.markdown("---")
 
@@ -454,18 +454,17 @@ df_baseline = pd.DataFrame()
 
 if data_source == " Confronto Diretto":
     # ═══════════════════════════════════════════════════════════════════════════
-    # MODALITÀ CONFRONTO AVANZATO (SCIENTIFICO)
+    # MODALITÀ CONFRONTO AVANZATO 
     # ═══════════════════════════════════════════════════════════════════════════
     
     # 1. Caricamento Dati
     df_rl = load_data(RL_LOG)
-    df_baseline = load_data(BASE_LOG) # Usa BASE_LOG
+    df_baseline = load_data(BASE_LOG)
     
     if df_rl.empty and df_baseline.empty:
         st.warning("⚠️ Nessun dato disponibile. Avvia i test per generare i CSV.")
         st.stop()
         
-    # Qui calcoliamo le medie su tutto il dataset disponibile
     st.markdown("### Analisi Statistiche")
 
     # 2. CALCOLO KPI MATEMATICI
@@ -514,17 +513,101 @@ if data_source == " Confronto Diretto":
         )
 
     with kpi4:
-        # Score sintetico (Inventato ma efficace: Efficienza = 1 / (Lat * Rep))
-        eff_rl = 1 / (mean_lat_rl * mean_rep_rl) if mean_lat_rl > 0 else 0
-        eff_bl = 1 / (mean_lat_bl * mean_rep_bl) if mean_lat_bl > 0 else 0
+        # Calcolo SLA (Percentuale episodi sotto soglia SLA)
+        TARGET_SLA = low_thr  # Usa la soglia configurata nella sidebar
+
+        # Calcolo SLA Met
+        sla_met_rl = (df_rl['latency'] <= TARGET_SLA).mean() 
+        sla_met_bl = (df_baseline['latency'] <= TARGET_SLA).mean()
+
+        # Calcolo Efficienza: % Successo diviso Costo Medio
+        eff_rl = sla_met_rl / mean_rep_rl if mean_rep_rl > 0 else 0
+        eff_bl = sla_met_bl / mean_rep_bl if mean_rep_bl > 0 else 0
+
+        # Delta percentuale
         delta_eff = ((eff_rl - eff_bl) / eff_bl * 100) if eff_bl > 0 else 0
+
         st.metric(
-            "Efficienza Globale", 
-            f"{eff_rl:.2f}", 
-            f"{delta_eff:.1f}%",
-            delta_color="normal" # Verde se sale
+            label="SLA Yield / Replica", 
+            value=f"{eff_rl:.3f}", 
+            delta=f"{delta_eff:.1f}%",
+            delta_color="normal",
+            help=f"Indica la % di rispetto SLA ottenuta per ogni singola replica media attiva. (Target < {TARGET_SLA}s)"
         )
 
+    st.markdown("---")
+        # 4bis. KPI AGGREGATI IN FORMA GRAFICA (BAR CHART)
+    st.subheader("Confronto KPI Aggregati")
+
+    # Converto in percentuale la quota di episodi sotto la soglia SLA
+    sla_met_rl_pct = sla_met_rl * 100.0 if mean_lat_rl > 0 else 0.0
+    sla_met_bl_pct = sla_met_bl * 100.0 if mean_lat_bl > 0 else 0.0
+
+    col_kpi1, col_kpi2 = st.columns(2)
+
+    # --- Grafico 1: Latenza media e Repliche medie ---
+    with col_kpi1:
+        fig_kpi1 = go.Figure()
+
+        x_labels_1 = ["Latenza media (s)", "Repliche medie"]
+        baseline_vals_1 = [mean_lat_bl, mean_rep_bl]
+        rl_vals_1 = [mean_lat_rl, mean_rep_rl]
+
+        fig_kpi1.add_trace(go.Bar(
+            x=x_labels_1,
+            y=baseline_vals_1,
+            name="Baseline",
+            marker=dict(color="#ef4444")
+        ))
+        fig_kpi1.add_trace(go.Bar(
+            x=x_labels_1,
+            y=rl_vals_1,
+            name="RL Agent",
+            marker=dict(color="#6366f1")
+        ))
+
+        fig_kpi1.update_layout(
+            title="Prestazioni e costo medio",
+            barmode="group",
+            plot_bgcolor="rgba(0,0,0,0)",
+            paper_bgcolor="rgba(0,0,0,0)",
+            font=dict(color="#e5e7eb"),
+            yaxis_title="Valore"
+        )
+
+        st.plotly_chart(fig_kpi1, width='stretch')
+
+    # --- Grafico 2: SLA Met e SLA Yield/Replica ---
+    with col_kpi2:
+        fig_kpi2 = go.Figure()
+
+        x_labels_2 = [f"% episodi ≤ {low_thr:.3f}s", "SLA Yield / Replica"]
+        baseline_vals_2 = [sla_met_bl_pct, eff_bl]
+        rl_vals_2 = [sla_met_rl_pct, eff_rl]
+
+        fig_kpi2.add_trace(go.Bar(
+            x=x_labels_2,
+            y=baseline_vals_2,
+            name="Baseline",
+            marker=dict(color="#ef4444")
+        ))
+        fig_kpi2.add_trace(go.Bar(
+            x=x_labels_2,
+            y=rl_vals_2,
+            name="RL Agent",
+            marker=dict(color="#6366f1")
+        ))
+
+        fig_kpi2.update_layout(
+            title="Affidabilità SLA e Efficienza",
+            barmode="group",
+            plot_bgcolor="rgba(0,0,0,0)",
+            paper_bgcolor="rgba(0,0,0,0)",
+            font=dict(color="#e5e7eb"),
+            yaxis_title="Valore (%, score)"
+        )
+
+        st.plotly_chart(fig_kpi2, width='stretch')
     st.markdown("---")
 
     # 4. GRAFICI STATISTICI (BOX PLOT)
@@ -560,41 +643,119 @@ if data_source == " Confronto Diretto":
             st.plotly_chart(fig_box_rep, width='stretch')
 
     with tab_ts:
-        # 5. SERIE TEMPORALE MIGLIORATA
-        # Grafico Lineare con aree colorate per soglie
+        # 5. SERIE TEMPORALE MIGLIORATA (TIME-BASED)
+        st.markdown("### Serie Temporale Dettagliata")
+        
         use_smooth = st.checkbox("Applica Smoothing", value=True)
         w_smooth = window if use_smooth else 1
 
         fig_ts = go.Figure()
 
+        # --- A. PREPARAZIONE DATI BASELINE ---
         if not df_baseline.empty:
+            # 1. Converti stringa in datetime
+            df_baseline["timestamp"] = pd.to_datetime(df_baseline["timestamp"])
+            # 2. Calcola i secondi trascorsi dall'inizio (T0)
+            start_time_base = df_baseline["timestamp"].iloc[0]
+            df_baseline["elapsed_time"] = (df_baseline["timestamp"] - start_time_base).dt.total_seconds()
+            
+            # 3. Smoothing
             y_base = df_baseline["latency"].rolling(window=w_smooth, min_periods=1).mean()
+            
+            # 4. Plot usando il TEMPO (elapsed_time) invece dell'episodio
             fig_ts.add_trace(go.Scatter(
-                x=df_baseline["episode"], y=y_base,
-                name="Baseline", line=dict(color="#ef4444", width=2, dash="dot"),
-                opacity=0.7
+                x=df_baseline["elapsed_time"], 
+                y=y_base,
+                name="Baseline Autoscaler", 
+                line=dict(color="#fb923c", width=2), 
+                opacity=0.8
             ))
 
+        # --- B. PREPARAZIONE DATI RL AGENT ---
         if not df_rl.empty:
+            # 1. Converti stringa in datetime
+            df_rl["timestamp"] = pd.to_datetime(df_rl["timestamp"])
+            # 2. Calcola i secondi trascorsi dall'inizio (T0)
+            start_time_rl = df_rl["timestamp"].iloc[0]
+            df_rl["elapsed_time"] = (df_rl["timestamp"] - start_time_rl).dt.total_seconds()
+            
+            # 3. Smoothing
             y_rl = df_rl["latency"].rolling(window=w_smooth, min_periods=1).mean()
+            
+            # 4. Plot usando il TEMPO
             fig_ts.add_trace(go.Scatter(
-                x=df_rl["episode"], y=y_rl,
-                name="RL Agent", line=dict(color="#6366f1", width=3),
+                x=df_rl["elapsed_time"], 
+                y=y_rl,
+                name="RL Agent", 
+                line=dict(color="#6366f1", width=3), 
                 opacity=1.0
             ))
 
-        # Aree colorate per le soglie
-        fig_ts.add_hrect(y0=mid_thr, y1=1.0, line_width=0, fillcolor="red", opacity=0.1, annotation_text="Violazione SLA")
-        fig_ts.add_hrect(y0=0, y1=low_thr, line_width=0, fillcolor="green", opacity=0.1, annotation_text="Zona Ottimale")
+        # --- C. AREE DI SFONDO PER LE FASI DI CARICO ---
+        # Definizione fasi con colori e durate
+        phases = [
+            # 1. Verde Acqua: Inizio tranquillo
+            ("Calma Iniziale", 120, "rgba(0, 255, 200, 0.1)"),
+            
+            # 2. Giallo Acceso: Inizia il carico 
+            ("Prima Onda", 300, "rgba(255, 255, 0, 0.1)"),
+            
+            # 3. Arancione: Primo pericolo
+            ("Primo Spike", 300, "rgba(255, 140, 0, 0.15)"),
+            
+            # 4. Azzurro Ciano: Pausa 
+            ("Recupero", 60, "rgba(0, 255, 255, 0.1)"),
+            
+            # 5. Rosso Fuoco: Picco
+            ("Secondo Spike", 300, "rgba(255, 50, 50, 0.2)"), 
+            
+            # 6. Viola: Onda secondaria
+            ("Seconda Onda", 120, "rgba(255, 0, 255, 0.1)"),
+            
+            # 7. Rosa: Ultimo picco
+            ("Terzo Spike", 120, "rgba(255, 20, 147, 0.15)"),
+            
+            # 8. Blu: Calma finale
+            ("Calma Finale", 160, "rgba(65, 105, 225, 0.1)"),
+            
+            # 9. Grigio: Stop traffico
+            ("Stop Traffico", 10, "rgba(128, 128, 128, 0.1)"),
+        ]
+        
+        current_time = 0
+        for name, duration, color in phases:
+            fig_ts.add_vrect(
+                x0=current_time, x1=current_time + duration,
+                fillcolor=color, layer="below", line_width=0,
+                annotation_text=name, annotation_position="top left"
+            )
+            current_time += duration
 
+        # --- D. SOGLIE ORIZZONTALI (SLA) ---
+        fig_ts.add_hline(y=mid_thr, line_width=2, line_dash="longdash", line_color="#ff0000", 
+                         annotation_text="SLA Limit", annotation_position="top right")
+        
+        fig_ts.add_hline(
+            y=low_thr,
+            line_width=1,           
+            line_dash="dot",        
+            line_color="#ffffff",   
+            opacity=0.5,           
+            annotation_text=f"Target",
+            annotation_position="bottom right"
+        )
+
+        # --- E. LAYOUT FINALE ---
         fig_ts.update_layout(
-            title="Confronto Temporale Diretto",
-            xaxis_title="Episodio",
+            title="Serie Temporale Latenza (Basata sul Tempo)",
+            xaxis_title="Tempo Trascorso (Secondi)", 
             yaxis_title="Latenza (s)",
             plot_bgcolor="rgba(17, 24, 39, 0.5)",
             paper_bgcolor="rgba(0,0,0,0)",
             font=dict(color="#e5e7eb"),
-            hovermode="x unified"
+            hovermode="x unified",
+            xaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.1)'),
+            yaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.1)'),
         )
         st.plotly_chart(fig_ts, width='stretch')
 
@@ -653,7 +814,7 @@ else:
 
     st.markdown("---")
 
-    # GRAFICI PRINCIPALI (VISTA SINGOLA)
+    # GRAFICI PRINCIPALI 
     colA, colB = st.columns([2, 1])
 
     with colA:
@@ -732,7 +893,7 @@ else:
         )
         st.plotly_chart(fig_r, width='stretch', key=f"reward_{time.time()}")
 
-    # FOOTER CON STATISTICHE (Solo vista singola)
+    # FOOTER CON STATISTICHE 
     st.markdown("---")
     col1, col2, col3, col4 = st.columns(4)
     
@@ -750,7 +911,7 @@ else:
     with col4:
         st.markdown(f"<div class='stat-card'><p class='stat-label'>Reward Cumulativo</p><p class='stat-value'>{cumulative_reward:.1f}</p></div>", unsafe_allow_html=True)
 
-# AUTO-REFRESH GENERALE (se non fermato prima)
+# AUTO-REFRESH GENERALE 
 if not pausa:
     time.sleep(refresh_sec)
     st.rerun()

@@ -4,7 +4,7 @@ import plotly.subplots as sp
 import os
 
 # Leggi i dati
-df = pd.read_csv("results/rl_log.csv")
+df = pd.read_csv("results/rl_eval_log.csv")
 df.columns = [c.strip().lower() for c in df.columns]
 
 # Crea una cartella per i grafici finali
@@ -36,7 +36,7 @@ fig.update_layout(
     xaxis=dict(title="Episodio (Tempo)"),
     yaxis=dict(title="Latenza [s]", side='left', showgrid=True),
     yaxis2=dict(title="N. Repliche", side='right', overlaying='y', range=[0, 5], showgrid=False),
-    template="simple_white", # Stile molto pulito per documenti
+    template="simple_white", 
     legend=dict(x=0.01, y=0.99, bordercolor="Black", borderwidth=1)
 )
 
@@ -45,7 +45,6 @@ print("✅ Creato tesina_img/grafico_performance.html")
 
 
 # --- GRAFICO 2: FUNZIONE DI REWARD (APPRENDIMENTO) ---
-# Mostra come l'agente migliora (o oscilla) nel tempo
 fig2 = go.Figure()
 
 fig2.add_trace(go.Scatter(
@@ -54,7 +53,7 @@ fig2.add_trace(go.Scatter(
     marker=dict(color='lightgray', size=5)
 ))
 
-# Aggiungiamo una media mobile per far vedere il trend
+# Aggiungi media mobile per trend
 df['reward_ma'] = df['reward'].rolling(window=10).mean()
 
 fig2.add_trace(go.Scatter(
@@ -71,8 +70,6 @@ fig2.update_layout(
 )
 
 fig2.write_html("tesina_img/grafico_reward.html")
-print("✅ Creato tesina_img/grafico_reward.html")
+print("Creato tesina_img/grafico_reward.html")
 
-print("\n💡 CONSIGLIO: Apri i file HTML, regola lo zoom come preferisci")
-print("   e clicca sull'icona della 📷 (Camera) in alto a destra nel grafico")
-print("   per scaricare il PNG in alta definizione per la tesina.")
+print("✅ Tutti i grafici per la tesi sono stati generati nella cartella 'tesina_img/'.")

@@ -20,7 +20,7 @@ def generate_request():
     except:
         pass
 
-# Funzione eseguita da ogni "Worker" (Thread)
+# Funzione eseguita da ogni (Thread)
 def worker_task(worker_id):
     while RUNNING:
         if CURRENT_MODE == "stop":
@@ -30,27 +30,26 @@ def worker_task(worker_id):
         # Esegue la richiesta
         generate_request()
         
-        # Dorme quanto dice il cervello centrale
-        # Aggiungiamo un pizzico di casualità per non farli andare identici
+        # Attende il tempo calcolato
         time.sleep(CURRENT_SLEEP)
 
 # --- CERVELLO CENTRALE ---
 if __name__ == "__main__":
-    print(f"🔥 MULTI-THREAD Load Controller (15 Workers) verso: {URL}")
+    print(f" MULTI-THREAD Load Controller (15 Thread concorrenti) verso: {URL}")
     print(f"In attesa di comandi in '{CMD_FILE}'...")
 
-    # 1. Avvia 15 Thread paralleli (come avere 15 terminali aperti)
+    # 1. Avvia 15 Thread paralleli
     threads = []
     for i in range(15):
         t = threading.Thread(target=worker_task, args=(i,))
-        t.daemon = True # Muoiono se chiudi lo script principale
+        t.daemon = True # Termina con il main thread
         t.start()
         threads.append(t)
-        print(f" -> Worker {i+1} avviato.")
+        print(f" -> Thread {i+1} avviato.")
 
     start_time = time.time()
 
-    # 2. Loop principale: Calcola solo quanto devono dormire i worker
+    # 2. Logica principale di controllo
     while True:
         # Leggi comando
         if os.path.exists(CMD_FILE):
@@ -59,24 +58,26 @@ if __name__ == "__main__":
         else:
             CURRENT_MODE = "calma"
 
-        # Calcola Logica
-        if CURRENT_MODE == "calma":
-            CURRENT_SLEEP = 0.5  # 10 thread * 2 req/s = 20 req/s totali (Gestibile)
+        if CURRENT_MODE == "stop":
+            # Zero richieste.
+            CURRENT_SLEEP = 1.0 
+
+        elif CURRENT_MODE == "calma":
+            # OBIETTIVO: Latenza bassa e stabile.
+            # CALCOLO: 1 thread / 3.8s = ~0.26 req/s.
+
+            CURRENT_SLEEP = 3.8 
 
         elif CURRENT_MODE == "spike":
-            CURRENT_SLEEP = 0.05 # 10 thread * 20 req/s = 200 req/s (BOMBARDAMENTO)
+            # OBIETTIVO: Saturazione totale.
+            # CALCOLO: 15 thread / 0.05s = 300 req/s.
+            CURRENT_SLEEP = 0.05 
 
         elif CURRENT_MODE == "onda":
-            # Onda sinusoidale
+            # OBIETTIVO: Variare da "gestibile" a "critico".
             factor = (math.sin(time.time() * 0.2) + 1) / 2
-            # Sleep varia da 0.05 (veloce) a 1.0 (lento)
-            CURRENT_SLEEP = 0.05 + (0.95 * (1 - factor))
-            
-            if int(time.time()) % 2 == 0:
-                print(f"🌊 Onda: intensità {factor:.2f} -> Sleep {CURRENT_SLEEP:.3f}s", end="\r")
-        
-        elif CURRENT_MODE == "stop":
-            print("🛑 STOP", end="\r")
+            # Sleep varia da 0.1s (Spike) a 3.8s (Calma)
+            CURRENT_SLEEP = 0.1 + (3.7 * (1 - factor))
 
         # Il main thread aggiorna la logica ogni 0.1s
         time.sleep(0.1)

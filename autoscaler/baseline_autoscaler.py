@@ -15,11 +15,12 @@ CONFIG_FILE = "autoscaler_config.json"
 LOG_FILE = "results/baseline_log.csv" 
 
 MIN_PODS = 1
-MAX_PODS = 10
+MAX_PODS = 5
+NUM_REQ = 20
 
 # Soglie di default (verranno sovrascritte dalla Dashboard se attiva)
-CURRENT_LOW_THR = 0.20
-CURRENT_HIGH_THR = 0.30
+CURRENT_LOW_THR = 0.25
+CURRENT_HIGH_THR = 0.35
 
 def set_replicas(n):
     n = max(MIN_PODS, min(MAX_PODS, n))
@@ -31,11 +32,11 @@ def wait_for_deployment_ready():
     try:
         subprocess.run(["kubectl", "rollout", "status", "deployment/edge-app", "--timeout=30s"],
                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        time.sleep(1)
+        time.sleep(2)
     except:
         pass
     
-def measure_latency(num_requests=10):
+def measure_latency(num_requests=NUM_REQ):
     latencies = []
     for _ in range(num_requests):
         start = time.time()
@@ -44,8 +45,6 @@ def measure_latency(num_requests=10):
             latencies.append(time.time() - start)
         except:
             latencies.append(1.0)
-        
-        # Pausa per non intasare il server e avere dati puliti (0.20s)
         time.sleep(0.05)
             
     return sum(latencies) / len(latencies) if latencies else 1.0
@@ -69,23 +68,26 @@ if __name__ == "__main__":
             try:
                 with open(CONFIG_FILE, "r") as f:
                     conf = json.load(f)
-                    CURRENT_LOW_THR = conf.get("low", 0.08)
-                    CURRENT_HIGH_THR = conf.get("high", 0.20)
+                    CURRENT_LOW_THR = conf.get("low", 0.23)
+                    CURRENT_HIGH_THR = conf.get("high", 0.35)
             except:
                 pass
 
         # 2. MISURA
-        lat = measure_latency(num_requests=30)
+        lat = measure_latency(num_requests=NUM_REQ)
         
         # 3. LOGICA BASELINE
         new_replicas = current_replicas
         if lat > CURRENT_HIGH_THR and current_replicas < MAX_PODS:
+            baseline_action += 1  # UP
             print(f"⚠️ Lat {lat:.3f}s > {CURRENT_HIGH_THR}s -> UP")
             new_replicas += 1
         elif lat < CURRENT_LOW_THR and current_replicas > MIN_PODS:
+            baseline_action = -1  # DOWN
             print(f"✅ Lat {lat:.3f}s < {CURRENT_LOW_THR}s -> DOWN")
             new_replicas -= 1
         else:
+            baseline_action = 0   # STAY
             print(f"➡️ Lat {lat:.3f}s OK.")
 
         # 4. ATTUAZIONE
@@ -95,13 +97,15 @@ if __name__ == "__main__":
             current_replicas = new_replicas
         
         # 5. LOG
-        lat_post = measure_latency(num_requests=20)
-        # Usiamo la funzione definita sopra
-        rew = reward_function(lat_post, current_replicas, CURRENT_LOW_THR, CURRENT_HIGH_THR)
+        lat_post = measure_latency(num_requests=NUM_REQ)
+        # Calcolo Reward
+        rew = reward_function(lat_post, current_replicas, CURRENT_LOW_THR, CURRENT_HIGH_THR, baseline_action)
 
-        # Qui usiamo "a" (append) per aggiungere sotto l'header
+        # Salvataggio su file
         with open(LOG_FILE, "a", newline="") as f:
             writer = csv.writer(f)
             writer.writerow([datetime.now(), episode, lat_post, current_replicas, rew])
         
         episode += 1
+        print("⏳ ...", end="\r")
+        time.sleep(3)  # Sincronizzazione Loop
