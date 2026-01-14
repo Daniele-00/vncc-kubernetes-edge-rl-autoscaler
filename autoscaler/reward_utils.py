@@ -15,28 +15,20 @@ def reward_function(latency, replicas, low_thr, high_thr, action):
       - Shape term  : piccolo bias per azioni "sensate" (up in HIGH, down in LOW)
     """
 
-    # --- Determina la zona di latenza ---
     if latency < low_thr:
         zone = "low"
     elif latency < high_thr:
         zone = "target"
-        # target: dentro l'SLA ma non super-basso
     else:
         zone = "high"
 
     # --- 1) SLA TERM ---
     if zone == "high":
-        # Violazione SLA: forte penalità
+        # Violazione SLA: penalità severa
         sla = -10.0
     elif zone == "target":
-        # Dentro la banda: meglio se più vicino a low_thr
-        # frac = 1 se siamo appena sotto high_thr
-        # frac = 0 se siamo appena sopra low_thr
-        # In realtà vogliamo il contrario: più vicino a low_thr => meglio
-        # quindi invertiamo:
+        # Siamo nella zona target, ma più siamo vicini al low_thr meglio è
         frac = (high_thr - latency) / max(1e-9, (high_thr - low_thr))  # in [0,1]
-        # frac=1 => latency = low_thr   (migliore)
-        # frac=0 => latency = high_thr  (peggiore)
         sla = 2.0 + 4.0 * frac  # fra ~2 e 6
     else:  # zone == "low"
         # Siamo ben al di sotto della soglia: molto buono

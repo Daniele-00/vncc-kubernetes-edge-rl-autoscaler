@@ -8,3 +8,4 @@ current_scenario.txt
 plot_rl/
 tesina_img/
 img_compare/
+/results/print_metrics.py

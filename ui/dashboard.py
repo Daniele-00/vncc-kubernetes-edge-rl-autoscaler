@@ -376,7 +376,7 @@ st.sidebar.success(f"Configurato: {low_thr}s / {mid_thr}s")
 st.sidebar.markdown("---")
 st.sidebar.markdown("#### Impostazioni Dashboard")
 
-refresh_sec = st.sidebar.slider("Refresh Rate (s)", 1, 10, 2, help="Intervallo di aggiornamento automatico della dashboard")
+refresh_sec = st.sidebar.slider("Refresh Rate (s)", 1, 60, 10, help="Intervallo di aggiornamento automatico della dashboard")
 window = st.sidebar.slider("Smoothing Window", 1, 10, 1, help="Finestra di smoothing per le metriche visualizzate")
 max_points = st.sidebar.slider("Max Episodes", 20, 250, 150, help="Numero massimo di episodi da visualizzare nei grafici")
 
@@ -514,7 +514,7 @@ if data_source == " Confronto Diretto":
 
     with kpi4:
         # Calcolo SLA (Percentuale episodi sotto soglia SLA)
-        TARGET_SLA = low_thr  # Usa la soglia configurata nella sidebar
+        TARGET_SLA = 0.35  # Usa la soglia configurata nella sidebar
 
         # Calcolo SLA Met
         sla_met_rl = (df_rl['latency'] <= TARGET_SLA).mean() 
@@ -528,7 +528,7 @@ if data_source == " Confronto Diretto":
         delta_eff = ((eff_rl - eff_bl) / eff_bl * 100) if eff_bl > 0 else 0
 
         st.metric(
-            label="SLA Yield / Replica", 
+            label="SLA Efficiency Score", 
             value=f"{eff_rl:.3f}", 
             delta=f"{delta_eff:.1f}%",
             delta_color="normal",
@@ -577,11 +577,11 @@ if data_source == " Confronto Diretto":
 
         st.plotly_chart(fig_kpi1, width='stretch')
 
-    # --- Grafico 2: SLA Met e SLA Yield/Replica ---
+    # --- Grafico 2: SLA Met e SLA Efficiency Score ---
     with col_kpi2:
         fig_kpi2 = go.Figure()
 
-        x_labels_2 = [f"% episodi ≤ {low_thr:.3f}s", "SLA Yield / Replica"]
+        x_labels_2 = [f"% episodi ≤ {mid_thr:.3f}s", "SLA Efficiency Score"]
         baseline_vals_2 = [sla_met_bl_pct, eff_bl]
         rl_vals_2 = [sla_met_rl_pct, eff_rl]
 
@@ -599,7 +599,7 @@ if data_source == " Confronto Diretto":
         ))
 
         fig_kpi2.update_layout(
-            title="Affidabilità SLA e Efficienza",
+            title="Affidabilità SLA e Efficiency Score",
             barmode="group",
             plot_bgcolor="rgba(0,0,0,0)",
             paper_bgcolor="rgba(0,0,0,0)",
