@@ -15,8 +15,7 @@
 ## Indice
 
 - [Panoramica del Progetto](#panoramica-del-progetto)
-- [Problema e Soluzione](#problema-e-soluzione)
-- [Caratteristiche Principali](#caratteristiche-principali)
+- [Limiti Approccio](#limiti-approccio)
 - [Architettura del Sistema](#️architettura-del-sistema)
 - [Tecnologie Utilizzate](#tecnologie-utilizzate)
 - [Quick Start](#quick-start)
@@ -33,11 +32,11 @@
 
 Questo progetto implementa un sistema di **autoscaling intelligente** per ambienti **Edge Computing** utilizzando **Reinforcement Learning (Q-Learning)**. Il sistema è stato sviluppato come applicazione cloud-native completamente funzionante su **Kubernetes (Minikube)**, dimostrando come l'apprendimento automatico possa superare approcci tradizionali rule-based nella gestione dinamica delle risorse.
 
-### Contributi Metodologici Chiave
+### Metodologia Utilizzata
 
 - **Separazione Training/Evaluation**: Fase di addestramento separata da fase di valutazione per confronto scientifico 
 - **Reward Zone-Based**: Funzione reward adattiva con pesi dinamici che variano in base allo stato del sistema
-- **Training Curriculum**: 6 super-cicli randomizzati (calma/onda/spike) per evitare overfitting
+- **Fase di training**: 6 super-cicli randomizzati (calma/onda/spike) per evitare overfitting
 - **Metrica SLA Met**: Percentuale di episodi con latenza ottimale, più informativa delle semplici violazioni
 
 ### Risultati Principali
@@ -73,9 +72,10 @@ elif latency < LOW_THRESHOLD:
     scale_down()
 ```
 
-**Problemi:**
+**Limiti Approccio**
 - Reazione ritardata (attendono superamento soglie)
 - Assenza di memoria storica
+- Possibile flapping
 - Configurazione manuale per ogni workload
 - Comportamento subottimale sotto carichi variabili
 
