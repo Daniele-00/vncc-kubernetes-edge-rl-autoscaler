@@ -330,25 +330,25 @@ Parametri: $\alpha=0.1$, $\gamma=0.9$, $\epsilon(t) = \max(0.9 \cdot 0.985^t, 0.
 ```
 kube-rl-edge/
 ├── app/                          # Microservizio Edge
-│   ├── app.py                    # Flask server (200ms delay)
-│   └── Dockerfile                # Containerizzazione
+│   ├── app.py                    # Flask server 
+│   └── Dockerfile                
 ├── autoscaler/                   # Logica Autoscaling
 │   ├── rl_autoscaler.py          # Agente Q-Learning (train/eval)
 │   ├── baseline_autoscaler.py    # Controller rule-based
 │   └── reward_utils.py           # Reward function
 ├── k8s/                          # Manifest Kubernetes
-│   └── deployment.yaml           # Deployment + Service NodePort
+│   └── deployment.yaml           
 ├── benchmark/                    # Scripts Benchmark
-│   ├── training_benchmark.py     # Curriculum randomizzato (train)
-│   └── benchmark.py              # Scenario deterministico (eval)
+│   ├── training_benchmark.py     
+│   └── benchmark.py              
 ├── load/                         # Generazione Traffico
-│   └── load_controller.py        # Multi-thread load (15 worker)
+│   └── load_controller.py        # Multi-thread load
 ├── ui/                           # Dashboard
-│   └── dashboard.py              # Streamlit UI con zone semantiche
-├── plots/                        # Plotting
+│   └── dashboard.py              
+├── plots/                        
 │   └── plot_compare.py           # Grafici confronto RL vs Baseline
 ├── results/                      # Output
-│   ├── rl_train_log.csv          # Log training (con epsilon)
+│   ├── rl_train_log.csv          # Log training 
 │   ├── rl_eval_log.csv           # Log evaluation RL
 │   ├── baseline_log.csv          # Log evaluation baseline
 │   └── qtable.npy                # Q-Table addestrata
@@ -372,19 +372,14 @@ kube-rl-edge/
 - 📧 Email: [daniele.nannicirulli@studenti.unipg.it](mailto:daniele.nannicirulli@studenti.unipg.it)
 - 🔗 LinkedIn: [linkedin.com/in/daniele-nanni-cirulli](https://www.linkedin.com/in/daniele-nanni-cirulli-6052b2231/)
 - 🐙 GitHub: [@Daniele-00](https://github.com/Daniele-00)
-
-**Università degli Studi di Perugia**  
-Dipartimento di Ingegneria  
-A.A. 2024/2025
-
 ---
 
 <div align="center">
 
 ### ⭐ Se questo progetto ti è stato utile, lascia una stella!
 
-**Sviluppato con 💙 per il corso di Virtual Networks and Cloud Computing**
+**Sviluppato con 💙 presso l'Università degli Studi di Perugia**
 
-[🔝 Torna all'Inizio](#-kubernetes-rl-autoscaler-for-edge-computing)
+[Torna all'Inizio](#-kubernetes-rl-autoscaler-for-edge-computing)
 
 </div>
