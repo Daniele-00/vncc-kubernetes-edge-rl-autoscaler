@@ -254,7 +254,7 @@ st.markdown("""
 # PERCORSI FILE
 # ═══════════════════════════════════════════════════════════════════════════
 RESULTS = "results"
-RL_LOG = os.path.join(RESULTS, "rl_eval_log2.csv")
+RL_LOG = os.path.join(RESULTS, "rl_eval_log.csv")
 BASE_LOG = os.path.join(RESULTS, "baseline_log.csv")
 CMD_FILE = "current_scenario.txt"
 CONFIG_FILE = "autoscaler_config.json"
