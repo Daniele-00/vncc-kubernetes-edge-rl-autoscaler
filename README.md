@@ -136,7 +136,9 @@ L'agente RL apprende una policy ottimale in due fasi distinte:
 
 ## Architettura del Sistema
 
-<img src="logo/architettura.png" alt="Architettura" width="40" style="vertical-align: middle;"> 
+<p align="center">
+  <img src="logo/architettura.png" alt="Architettura del Sistema" width="100%">
+</p>
 
 ### Flusso Dettagliato
 
