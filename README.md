@@ -7,7 +7,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 > **Corso:** Virtual Networks and Cloud Computing (A.A. 2024/2025)  
-> **Autore:** Daniele Nanni Cirulli (368204)  
+> **Autore:** Daniele Nanni Cirulli 
 > **Università degli Studi di Perugia** - Dipartimento di Ingegneria
 
 ---
