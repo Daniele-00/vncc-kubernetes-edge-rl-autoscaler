@@ -35,7 +35,7 @@ Questo progetto implementa un sistema di **autoscaling intelligente** per ambien
 
 ### Contributi Metodologici Chiave
 
-- **Separazione Training/Evaluation**: Fase di addestramento (34 min, 200 episodi) separata da fase di valutazione per confronto scientifico rigoroso
+- **Separazione Training/Evaluation**: Fase di addestramento separata da fase di valutazione per confronto scientifico 
 - **Reward Zone-Based**: Funzione reward adattiva con pesi dinamici che variano in base allo stato del sistema
 - **Training Curriculum**: 6 super-cicli randomizzati (calma/onda/spike) per evitare overfitting
 - **Metrica SLA Met**: Percentuale di episodi con latenza ottimale, più informativa delle semplici violazioni
@@ -83,54 +83,13 @@ elif latency < LOW_THRESHOLD:
 
 L'agente RL apprende una policy ottimale in due fasi distinte:
 
-1. **Training (34 min)**: Esplora lo spazio stati-azioni su pattern randomizzati, costruisce Q-Table
-2. **Evaluation**: Usa Q-Table congelata (zero esplorazione) per confronto equo con baseline
+1. **Training**: Esplora lo spazio stati-azioni su pattern randomizzati, costruisce Q-Table
+2. **Evaluation**: Usa Q-Table salvata (zero esplorazione) per confronto equo con baseline
 
 **Vantaggi:**
 - Apprende strategie adattive senza regole esplicite
 - Bilancia automaticamente latenza e costi tramite reward
 - Policy più reattiva (adatta repliche seguendo carico istantaneo)
-- Confronto scientifico valido (policy entrambe deterministiche)
-
----
-
-## Caratteristiche Principali
-
-### Core Features
-
-- **Agente Q-Learning Tabular**
-  - 15 stati discreti: {3 bucket latenza} × {5 livelli repliche}
-  - 3 azioni: Scale Down (-1), Hold (0), Scale Up (+1)
-  - Epsilon-greedy decay: da 0.9 a 0.1 in ~150 episodi
-  - Q-Table salvata/caricata per separazione train/eval
-
-- **Reward Function Zone-Based Adattiva**
-  - **SLA Term**: Interpolazione lineare in zona TARGET (da +2 a +6)
-  - **Cost Term**: Peso dinamico 0.5 (HIGH) / 1.0 (TARGET) / 2.0 (LOW)
-  - **Shape Term**: Bonus +2 per UP in HIGH, +1 per DOWN in LOW
-  - Risolve "pigrizia" nello scale-up e spreco in calma
-
-- **Training Curriculum Randomizzato**
-  - 6 super-cicli con scenari calma/onda/spike
-  - Ordine e durata randomizzati (seed fisso per riproducibilità)
-  - Evita overfitting su sequenze specifiche
-  - Genera ~200 episodi in 34 minuti
-
-- **Baseline Rule-Based per Confronto**
-  - Logica threshold pura (IF latency > soglia THEN scale)
-  - Reward post-hoc con stessa funzione dell'RL (confronto equo)
-  - Evidenzia limiti approcci reattivi senza memoria
-
-- **Dashboard Streamlit Avanzata**
-  - 3 modalità: RL / Baseline / Confronto Diretto
-  - **Zone Semantiche**: Grafici con bande colorate (verde=calma, giallo=onda, arancione=spike)
-  - Modifiche SLA hot-reload (no restart autoscaler)
-  - Box plot distribuzione + tabelle comparative
-
-- **Load Generator Multi-Thread**
-  - 15 worker concorrenti per saturazione realistica
-  - Calibrato per creare contention (200ms delay × 15 thread = latenze osservabili)
-  - 4 scenari: Calma (2 req/s/thread), Spike (20 req/s), Onda (sinusoidale), Stop
 
 ---
 
@@ -272,7 +231,7 @@ python benchmark/training_benchmark.py  # Orchestr curriculum
 - **Scenari**: 6 super-cicli randomizzati (calma/onda/spike)
 - **Epsilon**: Decay da 0.9 → 0.1
 - **Output**: Q-Table salvata su `results/qtable.npy`
-- **Log**: `results/rl_train_log.csv` (include epsilon per analisi convergenza)
+- **Log**: `results/rl_train_log.csv`
 
 #### Fase 2: Evaluation RL (RL\_MODE=eval)
 
@@ -285,7 +244,7 @@ python benchmark/benchmark.py  # Scenario DETERMINISTICO
 
 - **Q-Table**: Caricata da disco (frozen)
 - **Epsilon**: Forzato a 0 (zero esplorazione)
-- **Scenario**: Onda deterministico (identico per baseline)
+- **Scenario**: benchmark.py (identico per baseline)
 - **Output**: `results/rl_eval_log.csv`
 
 #### Fase 3: Evaluation Baseline
@@ -336,10 +295,9 @@ Parametri: $\alpha=0.1$, $\gamma=0.9$, $\epsilon(t) = \max(0.9 \cdot 0.985^t, 0.
 
 ### Setup
 
-- **Hardware**: Intel i7 (8 core), 16 GB RAM, WSL 2 Ubuntu
-- **Scenario Eval**: Onda deterministica (identico per RL e Baseline)
+- **Hardware**: AMD Ryzen 7 8845HS, 32 GB RAM, WSL 2 Ubuntu
+- **Scenario Eval**: benchmark.py
 - **Soglie SLA**: Low=0.25s, High=0.35s
-- **Episodi**: RL 205, Baseline 82 (test a regime)
 
 ### Metriche Comparative
 
@@ -361,9 +319,9 @@ Parametri: $\alpha=0.1$, $\gamma=0.9$, $\epsilon(t) = \max(0.9 \cdot 0.985^t, 0.
 
 ### Grafici
 
-![Confronto Serie Temporali](results/latenzaConfronto.png)
+![Confronto Serie Temporali](logo/latenzaConfronto.png)
 
-*Le bande colorate verticali indicano lo scenario attivo: verde (calma), giallo (onda), arancione (spike). L'RL adatta dinamicamente le repliche, la baseline mantiene configurazioni più stabili ma meno reattive.*
+*Le bande colorate verticali indicano lo scenario attivo. L'RL adatta dinamicamente le repliche, la baseline mantiene configurazioni più stabili ma meno reattive.*
 
 ---
 
