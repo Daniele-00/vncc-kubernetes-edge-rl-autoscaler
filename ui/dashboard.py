@@ -11,7 +11,7 @@ from PIL import Image
 # ═══════════════════════════════════════════════════════════════════════════
 # Page config 
 logo_path = None
-candidate = os.path.join("logo", "logo.png")
+candidate = os.path.join("logo", "logo_vncc.png")
 if os.path.exists(candidate):
     logo_path = candidate
 else:

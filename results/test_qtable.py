@@ -26,22 +26,18 @@ def inspect():
     
     if np.all(Q == 0):
         print("\n⚠️  ATTENZIONE: LA Q-TABLE È COMPLETAMENTE VUOTA (TUTTI ZERI)!")
-        print("    Questo spiega perché in EVAL l'agente non fa nulla.")
         return
 
-    print("\n--- VISIONE UMANA ---")
+    print("\n------")
     header = f"{'STATO (Lat / Reps)':<25} | {'DOWN':<12} | {'HOLD':<12} | {'UP':<12}"
     print(header)
     print("-" * len(header))
 
-    # Ricostruiamo gli indici come fa il tuo agente
-    # Formula: state_index = lat_bucket * n_replica_states + (replicas - 1)
     
     for lat_idx, lat_name in enumerate(LATENCY_NAMES):
         for rep in range(1, MAX_PODS + 1):
             state_idx = lat_idx * MAX_PODS + (rep - 1)
             
-            # Attenzione: se hai cambiato le dimensioni nel frattempo, questo crasha
             if state_idx >= len(Q):
                 break
 
@@ -50,7 +46,7 @@ def inspect():
             # Evidenzia l'azione migliore
             best_action_idx = np.argmax(row)
             best_marker = ["", "", ""]
-            # Mettiamo una stellina sull'azione che l'agente sceglierebbe in EVAL
+            
             if not np.all(row == 0):
                 best_marker[best_action_idx] = "*"
 

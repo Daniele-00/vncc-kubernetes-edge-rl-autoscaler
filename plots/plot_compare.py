@@ -41,7 +41,7 @@ start_base = df_base['timestamp'].iloc[0]
 df_rl['elapsed'] = (df_rl['timestamp'] - start_rl).dt.total_seconds()
 df_base['elapsed'] = (df_base['timestamp'] - start_base).dt.total_seconds()
 
-# Funzione helper per aggiungere le bande colorate
+# --- HELPER PER BANDE COLORATE ---
 def add_phases_background(fig):
     t = 0
     for name, duration, color in PHASES:
@@ -53,7 +53,9 @@ def add_phases_background(fig):
         )
         t += duration
 
-# --- GRAFICO 1: CONFRONTO LATENZA ---
+# ==========================================
+# GRAFICO 1: CONFRONTO LATENZA
+# ==========================================
 fig1 = go.Figure()
 
 # Baseline (Arancione)
@@ -88,7 +90,9 @@ fig1.update_layout(
     hovermode="x unified"
 )
 
-# --- GRAFICO 2: CONFRONTO UTILIZZO RISORSE (REPLICHE) ---
+# ==========================================
+# GRAFICO 2: CONFRONTO UTILIZZO RISORSE
+# ==========================================
 fig2 = go.Figure()
 
 # Baseline (Arancione)
@@ -118,10 +122,44 @@ fig2.update_layout(
     yaxis=dict(tickmode='linear', tick0=1, dtick=1) 
 )
 
+fig3 = go.Figure()
+
+# Controlliamo se la colonna reward esiste 
+if 'reward' in df_base.columns:
+    fig3.add_trace(go.Scatter(
+        x=df_base["elapsed"], y=df_base["reward"],
+        mode='lines', name='Baseline Reward',
+        line=dict(color='#f97316', width=2),
+        opacity=0.6  # Un po' più trasparente per vedere bene l'RL
+    ))
+else:
+    print("⚠️ Attenzione: Colonna 'reward' non trovata nel CSV Baseline.")
+
+if 'reward' in df_rl.columns:
+    fig3.add_trace(go.Scatter(
+        x=df_rl["elapsed"], y=df_rl["reward"],
+        mode='lines', name='RL Reward',
+        line=dict(color='#2563eb', width=2.5)
+    ))
+
+add_phases_background(fig3)
+
+fig3.update_layout(
+    title="<b>Analisi Reward: Qualità della Policy</b><br><sup>Confronto del punteggio (Più alto è meglio)</sup>",
+    xaxis_title="Tempo Trascorso (Secondi)",
+    yaxis_title="Reward Istantaneo",
+    template="plotly_white",
+    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+    hovermode="x unified"
+)
+
 # --- SALVATAGGIO ---
 os.makedirs("img_compare", exist_ok=True)
 fig1.write_html("img_compare/tesi_confronto_latenza.html")
 fig2.write_html("img_compare/tesi_confronto_repliche.html")
+fig3.write_html("img_compare/tesi_confronto_reward.html")
 
-print("✅ Grafici professionali generati in 'img_compare/'.")
-print("   Apri i file HTML nel browser e fai uno screenshot per la tesi!")
+print("✅ Grafici generati in 'img_compare/'.")
+print("   - tesi_confronto_latenza.html")
+print("   - tesi_confronto_repliche.html")
+print("   - tesi_confronto_reward.html")

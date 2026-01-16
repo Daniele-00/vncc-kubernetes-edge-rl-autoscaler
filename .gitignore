@@ -6,6 +6,9 @@ __pycache__/
 autoscaler_config.json
 current_scenario.txt
 plot_rl/
+plots/
 tesina_img/
 img_compare/
 /results/print_metrics.py
+/results/test_qtable.py
+README2.md
