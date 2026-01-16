@@ -256,7 +256,7 @@ curl http://$MINIKUBE_IP:30080  # Output atteso: OK (dopo ~200ms)
 
 ### Perché Separare Training ed Evaluation?
 
-Senza separazione, il confronto RL vs Baseline sarebbe ingiusto: l'RL includerebbe episodi di esplorazione casuale (azioni subottimali intenzionali) che penalizzerebbero artificialmente le sue performance.
+Senza separazione, il confronto RL vs Baseline non sarebbe equo: l'RL includerebbe episodi di esplorazione casuale (azioni subottimali intenzionali) che penalizzerebbero le sue performance.
 
 ### Protocollo Implementato
 
@@ -351,17 +351,17 @@ Parametri: $\alpha=0.1$, $\gamma=0.9$, $\epsilon(t) = \max(0.9 \cdot 0.985^t, 0.
 | **Violazioni SLA** | 11 | 10 | 1 violazione evitata ✅ |
 | **Efficiency** | 0.370 | 0.371 | Sostanzialmente pari ✅ |
 
-### Interpretazione Chiave
+### Conclusioni
 
-**Qualità del Servizio**: L'RL mantiene latenza ottimale nel 95.1% degli episodi contro 86.6% della baseline. Questo si traduce in un'esperienza utente significativamente migliore in applicazioni Edge latency-sensitive.
+**Qualità del Servizio**: L'RL mantiene latenza ottimale nel 95.1% degli episodi contro 86.6% della baseline. Questo è un risultato interessante da tenere in considerazione.
 
 **Trade-off Costi/QoS**: L'RL utilizza 9.4% di risorse in più, ma l'**SLA Efficiency** (0.371 vs 0.370) è identica. Questo indica che il sistema ha raggiunto un equilibrio ottimale: l'overhead è proporzionale al miglioramento qualitativo.
 
-**Reattività vs Stabilità**: L'RL adatta più frequentemente le repliche seguendo il carico istantaneo (comportamento dinamico), mentre la baseline sembra più stabile ma è solo più lenta a reagire. Questa maggiore reattività dell'RL è il **prezzo** da pagare per ottenere 95.1% SLA Met.
+**Reattività vs Stabilità**: L'RL adatta più frequentemente le repliche seguendo il carico istantaneo (comportamento dinamico), mentre la baseline è più stabile ma anche più lenta a reagire. Questa maggiore reattività dell'RL è il **prezzo** da pagare per ottenere 95.1% SLA Met.
 
 ### Grafici
 
-![Confronto Serie Temporali](results/confronto_eval.png)
+![Confronto Serie Temporali](results/latenzaConfronto.png)
 
 *Le bande colorate verticali indicano lo scenario attivo: verde (calma), giallo (onda), arancione (spike). L'RL adatta dinamicamente le repliche, la baseline mantiene configurazioni più stabili ma meno reattive.*
 
