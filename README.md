@@ -30,7 +30,7 @@
 
 ## Panoramica del Progetto
 
-Questo progetto implementa un sistema di **autoscaling intelligente** per ambienti **Edge Computing** utilizzando **Reinforcement Learning (Q-Learning)**. Il sistema è stato sviluppato come applicazione cloud-native completamente funzionante su **Kubernetes (Minikube)**, dimostrando come l'apprendimento automatico possa superare approcci tradizionali rule-based nella gestione dinamica delle risorse.
+Questo progetto implementa un sistema di **autoscaling intelligente** per ambienti **Edge Computing** utilizzando **Reinforcement Learning (Q-Learning)**. Il sistema è stato sviluppato come applicazione cloud-native completamente funzionante su **Kubernetes (Minikube)**, dimostrando come l'apprendimento automatico possa essere un approccio valido in confronto tradizionali rule-based nella gestione dinamica delle risorse.
 
 ### Metodologia Utilizzata
 
