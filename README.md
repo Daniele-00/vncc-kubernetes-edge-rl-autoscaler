@@ -15,7 +15,7 @@
 ## Indice
 
 - [Panoramica del Progetto](#panoramica-del-progetto)
-- [Limiti Approccio](#limiti-approccio)
+- [Problemi e Possibile Soluzione](#problemi-e-possibile-soluzione)
 - [Architettura del Sistema](#️architettura-del-sistema)
 - [Tecnologie Utilizzate](#tecnologie-utilizzate)
 - [Quick Start](#quick-start)
@@ -50,7 +50,7 @@ Questo progetto implementa un sistema di **autoscaling intelligente** per ambien
 
 ---
 
-## Problema e Soluzione
+## Problema e Possibile Soluzione
 
 ### Il Problema: Autoscaling in Edge Computing
 
@@ -72,7 +72,7 @@ elif latency < LOW_THRESHOLD:
     scale_down()
 ```
 
-**Limiti Approccio**
+**Problemi:**
 - Reazione ritardata (attendono superamento soglie)
 - Assenza di memoria storica
 - Possibile flapping
