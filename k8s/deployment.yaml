@@ -18,6 +18,13 @@ spec:
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 5000
+          resources:           
+            requests:
+              cpu: "100m"      # Minimo 0.1 CPU
+              memory: "128Mi"  # Minimo 128MB di memoria
+            limits:
+              cpu: "1000m"      # Massimo 1 CPU 
+              memory: "512Mi"  # Tetto massimo di memoria 
 ---
 apiVersion: v1
 kind: Service
@@ -28,6 +35,7 @@ spec:
     app: edge-app
   type: NodePort
   ports:
-    - port: 80
-      targetPort: 5000
-      nodePort: 30080
+    - port: 80 # Porta del servizio
+      targetPort: 5000 # Porta del container
+      nodePort: 30080 # Porta esposta sul nodo
+
