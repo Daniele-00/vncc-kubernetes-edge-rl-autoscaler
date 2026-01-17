@@ -15,6 +15,7 @@
 ## Indice
 
 - [Panoramica del Progetto](#panoramica-del-progetto)
+- [Struttura del Progetto](#struttura-del-progetto)
 - [Problemi e Possibile Soluzione](#problemi-e-possibile-soluzione)
 - [Architettura del Sistema](#️architettura-del-sistema)
 - [Tecnologie Utilizzate](#tecnologie-utilizzate)
@@ -23,7 +24,6 @@
 - [Metodologia Training/Evaluation](#metodologia-trainingevaluation)
 - [Modello Teorico (Q-Learning)](#modello-teorico-q-learning)
 - [Risultati Sperimentali](#risultati-sperimentali)
-- [Struttura del Progetto](#struttura-del-progetto)
 - [Contatti](#contatti)
 
 ---
@@ -49,6 +49,40 @@ Questo progetto implementa un sistema di **autoscaling intelligente** per ambien
 | Efficiency (SLA/Cost) | 0.370 | 0.371 | Pari ✅ |
 
 ---
+## Struttura del Progetto
+
+```
+kube-rl-edge/
+├── app/                          # Microservizio Edge
+│   ├── app.py                    # Flask server 
+│   └── Dockerfile                
+├── autoscaler/                   # Logica Autoscaling
+│   ├── rl_autoscaler.py          # Agente Q-Learning (train/eval)
+│   ├── baseline_autoscaler.py    # Controller rule-based
+│   └── reward_utils.py           # Reward function
+├── k8s/                          # Manifest Kubernetes
+│   └── deployment.yaml           
+├── benchmark/                    # Scripts Benchmark
+│   ├── training_benchmark.py     
+│   └── benchmark.py              
+├── load/                         # Generazione Traffico
+│   └── load_controller.py        # Multi-thread load
+├── tesina/                       
+│   └── Tesina_VNCC.pdf           # Documentazione progetto
+├── ui/                           # Dashboard
+│   └── dashboard.py              
+├── plots/                        
+│   └── plot_compare.py           # Grafici confronto RL vs Baseline
+├── results/                      # Output
+│   ├── rl_train_log.csv          # Log training 
+│   ├── rl_eval_log.csv           # Log evaluation RL
+│   ├── baseline_log.csv          # Log evaluation baseline
+│   └── qtable.npy                # Q-Table addestrata
+└── requirements.txt              # Dipendenze Python
+```
+
+---
+
 
 ## Problema e Possibile Soluzione
 
@@ -322,38 +356,6 @@ Parametri: $\alpha=0.1$, $\gamma=0.9$, $\epsilon(t) = \max(0.9 \cdot 0.985^t, 0.
 ![Confronto Serie Temporali](logo/latenzaConfronto.png)
 
 *Le bande colorate verticali indicano lo scenario attivo. L'RL adatta dinamicamente le repliche, la baseline mantiene configurazioni più stabili ma meno reattive.*
-
----
-
-## Struttura del Progetto
-
-```
-kube-rl-edge/
-├── app/                          # Microservizio Edge
-│   ├── app.py                    # Flask server 
-│   └── Dockerfile                
-├── autoscaler/                   # Logica Autoscaling
-│   ├── rl_autoscaler.py          # Agente Q-Learning (train/eval)
-│   ├── baseline_autoscaler.py    # Controller rule-based
-│   └── reward_utils.py           # Reward function
-├── k8s/                          # Manifest Kubernetes
-│   └── deployment.yaml           
-├── benchmark/                    # Scripts Benchmark
-│   ├── training_benchmark.py     
-│   └── benchmark.py              
-├── load/                         # Generazione Traffico
-│   └── load_controller.py        # Multi-thread load
-├── ui/                           # Dashboard
-│   └── dashboard.py              
-├── plots/                        
-│   └── plot_compare.py           # Grafici confronto RL vs Baseline
-├── results/                      # Output
-│   ├── rl_train_log.csv          # Log training 
-│   ├── rl_eval_log.csv           # Log evaluation RL
-│   ├── baseline_log.csv          # Log evaluation baseline
-│   └── qtable.npy                # Q-Table addestrata
-└── requirements.txt              # Dipendenze Python
-```
 
 ---
 
