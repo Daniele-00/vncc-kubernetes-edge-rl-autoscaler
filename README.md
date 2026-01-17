@@ -39,15 +39,7 @@ Questo progetto implementa un sistema di **autoscaling intelligente** per ambien
 - **Fase di training**: 6 super-cicli randomizzati (calma/onda/spike) per evitare overfitting
 - **Metrica SLA Met**: Percentuale di episodi con latenza ottimale, più informativa delle semplici violazioni
 
-### Risultati Principali
-
-| Metrica | Baseline | RL (Eval) | Delta |
-|---------|----------|-----------|-------|
-| **SLA Met** | 86.6% | **95.1%** | **+8.5 punti** ✅ |
-| Latenza Media | 0.290s | 0.264s | -8.9% ✅ |
-| Repliche Medie | 2.34 | 2.56 | +9.4% ⚠️ |
-| Efficiency (SLA/Cost) | 0.370 | 0.371 | Pari ✅ |
-
+**[Relazione completa (PDF)](./tesina/Tesina_VNCC.pdf)**
 ---
 ## Struttura del Progetto
 
@@ -337,11 +329,11 @@ Parametri: $\alpha=0.1$, $\gamma=0.9$, $\epsilon(t) = \max(0.9 \cdot 0.985^t, 0.
 
 | Metrica | Baseline | RL (Eval) | Interpretazione |
 |---------|----------|-----------|-----------------|
-| **Latenza Media** | 0.290s | 0.264s | RL 8.9% più veloce ✅ |
-| **Repliche Medie** | 2.34 | 2.56 | RL 9.4% più costoso ⚠️ |
-| **SLA Met** | **86.6%** | **95.1%** | RL +8.5 punti ✅ |
+| **Latenza Media** | 0,290s | 0,264s | RL 8,9% più veloce ✅ |
+| **Repliche Medie** | 2,34 | 2,56 | RL 9,4% più costoso ⚠️ |
+| **SLA Met** | **86,6%** | **95,1%** | RL +8,5 punti ✅ |
 | **Violazioni SLA** | 11 | 10 | 1 violazione evitata ✅ |
-| **Efficiency** | 0.370 | 0.371 | Sostanzialmente pari ✅ |
+| **Efficiency** | 0,370 | 0,371 | Sostanzialmente pari ✅ |
 
 ### Conclusioni
 
