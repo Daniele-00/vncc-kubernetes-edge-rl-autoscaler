@@ -34,10 +34,10 @@ Questo progetto implementa un sistema di **autoscaling intelligente** per ambien
 
 ### Metodologia Utilizzata
 
-- **Separazione Training/Evaluation**: Fase di addestramento separata da fase di valutazione per confronto scientifico 
-- **Reward Zone-Based**: Funzione reward adattiva con pesi dinamici che variano in base allo stato del sistema
-- **Fase di training**: 6 super-cicli randomizzati (calma/onda/spike) per evitare overfitting
-- **Metrica SLA Met**: Percentuale di episodi con latenza ottimale, più informativa delle semplici violazioni
+- **Separazione Training/Evaluation**: Fase di addestramento separata da fase di valutazione per confronto scientifico.
+- **Reward Zone-Based**: Funzione reward adattiva con pesi dinamici che variano in base allo stato del sistema.
+- **Fase di training**: 6 super-cicli randomizzati (calma/onda/spike) per evitare overfitting.
+- **Metrica SLA Met**: Percentuale di episodi con latenza sotto soglia critica, più informativa delle semplici violazioni.
 
 **[Relazione completa (PDF)](./tesina/Tesina_VNCC.pdf)**
 
