@@ -40,6 +40,7 @@ Questo progetto implementa un sistema di **autoscaling intelligente** per ambien
 - **Metrica SLA Met**: Percentuale di episodi con latenza ottimale, più informativa delle semplici violazioni
 
 **[Relazione completa (PDF)](./tesina/Tesina_VNCC.pdf)**
+
 ---
 ## Struttura del Progetto
 
