@@ -68,7 +68,7 @@ if __name__ == "__main__":
             try:
                 with open(CONFIG_FILE, "r") as f:
                     conf = json.load(f)
-                    CURRENT_LOW_THR = conf.get("low", 0.23)
+                    CURRENT_LOW_THR = conf.get("low", 0.25)
                     CURRENT_HIGH_THR = conf.get("high", 0.35)
             except:
                 pass
